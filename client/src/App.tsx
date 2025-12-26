@@ -487,6 +487,8 @@ function ChatSection({ sessionId }: { sessionId: string }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const emojiPickerRef = React.useRef<HTMLDivElement>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const formRef = React.useRef<HTMLFormElement>(null);
   const userIdRef = React.useRef<string>(`user-${Date.now()}`);
 
   useEffect(() => {
@@ -508,6 +510,14 @@ function ChatSection({ sessionId }: { sessionId: string }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [message]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -661,7 +671,7 @@ function ChatSection({ sessionId }: { sessionId: string }) {
         ))}
         <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={sendMessage} className="chat-input-form">
+      <form ref={formRef} onSubmit={sendMessage} className="chat-input-form">
         <input
           type="file"
           accept="image/*"
@@ -688,12 +698,19 @@ function ChatSection({ sessionId }: { sessionId: string }) {
             </div>
           )}
         </div>
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              formRef.current?.requestSubmit();
+            }
+          }}
           placeholder="Type a message..."
           className="chat-input"
+          rows={1}
         />
         <button type="submit" className="send-btn">Send</button>
       </form>

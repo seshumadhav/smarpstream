@@ -890,6 +890,12 @@ body {
   color: #fff;
   background-color: #1a1a1a;
   transition: all 0.15s ease;
+  resize: none;
+  overflow-y: auto;
+  min-height: 44px;
+  max-height: 200px;
+  font-family: inherit;
+  line-height: 1.5;
 }
 
 .chat-input:focus {
