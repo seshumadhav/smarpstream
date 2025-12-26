@@ -2,73 +2,72 @@
 // Featuring scientists, philosophers, politicians, business leaders, academics, researchers, and movie names
 
 module.exports = {
-  // Scientists (Last names or recognizable names)
+  // Scientists (Full names: First Last)
   scientists: [
-    'Einstein', 'Newton', 'Darwin', 'Curie', 'Tesla', 'Edison', 'Galileo', 'Copernicus',
-    'Hawking', 'Feynman', 'Bohr', 'Planck', 'Heisenberg', 'Schrodinger', 'Dirac', 'Pauli',
-    'Rutherford', 'Thomson', 'Chadwick', 'Fermi', 'Oppenheimer', 'Teller', 'Bethe', 'Watson',
-    'Crick', 'Franklin', 'Wilkins', 'Mendel', 'Pasteur', 'Koch', 'Fleming', 'Salk',
-    'Sabin', 'Jenner', 'Lister', 'Harvey', 'Vesalius', 'Galen', 'Hippocrates', 'Archimedes',
-    'Pythagoras', 'Euclid', 'Lavoisier', 'Mendeleev', 'Dalton', 'Avogadro', 'Berzelius', 'Priestley',
-    'Cavendish', 'Faraday', 'Maxwell', 'Ampere', 'Volta', 'Ohm', 'Joule', 'Kelvin',
-    'Celsius', 'Hubble', 'Penzias', 'Wilson', 'Gamow', 'Hoyle', 'Chandrasekhar', 'Sagan',
-    'Tyson', 'Goodall', 'Fossey', 'Attenborough', 'Dawkins', 'Gould', 'Lovelock', 'Margulis',
-    'Woese', 'Venter', 'Collins', 'Lander', 'Sulston', 'Sanger', 'Berg', 'Cohen',
-    'Boyer', 'Mullis', 'Smith', 'Fire', 'Mello', 'Blackburn', 'Greider', 'Szostak',
-    'Yamanaka', 'Gurdon', 'Capecchi', 'Evans', 'Smithies', 'Nirenberg', 'Khorana', 'Holley',
-    'Kornberg', 'Lederberg', 'Beadle', 'Tatum', 'McClintock', 'Luria', 'Delbruck', 'Hershey',
-    'Kendrew', 'Perutz', 'Pauling', 'Calvin', 'Urey', 'Libby', 'Seaborg', 'McMillan',
-    'Lawrence', 'Cockcroft', 'Walton', 'Hahn', 'Strassmann', 'Meitner', 'Frisch', 'Born',
-    'Jordan', 'Wigner', 'VonNeumann', 'Turing', 'Wiener', 'Shannon', 'McCarthy', 'Minsky',
-    'Papert', 'Newell', 'Simon', 'Feigenbaum', 'Shortliffe', 'Buchanan', 'Lenat', 'Davis',
-    'Schank', 'Abelson'
+    'Albert Einstein', 'Isaac Newton', 'Charles Darwin', 'Marie Curie', 'Nikola Tesla', 'Thomas Edison', 'Galileo Galilei', 'Nicolaus Copernicus',
+    'Stephen Hawking', 'Richard Feynman', 'Niels Bohr', 'Max Planck', 'Werner Heisenberg', 'Erwin Schrodinger', 'Paul Dirac', 'Wolfgang Pauli',
+    'Ernest Rutherford', 'JJ Thomson', 'James Chadwick', 'Enrico Fermi', 'Robert Oppenheimer', 'Edward Teller', 'Hans Bethe', 'James Watson',
+    'Francis Crick', 'Rosalind Franklin', 'Maurice Wilkins', 'Gregor Mendel', 'Louis Pasteur', 'Robert Koch', 'Alexander Fleming', 'Jonas Salk',
+    'Albert Sabin', 'Edward Jenner', 'Joseph Lister', 'William Harvey', 'Andreas Vesalius', 'Galen', 'Hippocrates', 'Archimedes',
+    'Pythagoras', 'Euclid', 'Antoine Lavoisier', 'Dmitri Mendeleev', 'John Dalton', 'Amedeo Avogadro', 'Jons Berzelius', 'Joseph Priestley',
+    'Henry Cavendish', 'Michael Faraday', 'James Maxwell', 'Andre Ampere', 'Alessandro Volta', 'Georg Ohm', 'James Joule', 'Lord Kelvin',
+    'Anders Celsius', 'Edwin Hubble', 'Arno Penzias', 'Robert Wilson', 'George Gamow', 'Fred Hoyle', 'Subrahmanyan Chandrasekhar', 'Carl Sagan',
+    'Neil deGrasse Tyson', 'Jane Goodall', 'Dian Fossey', 'David Attenborough', 'Richard Dawkins', 'Stephen Gould', 'James Lovelock', 'Lynn Margulis',
+    'Carl Woese', 'Craig Venter', 'Francis Collins', 'Eric Lander', 'John Sulston', 'Frederick Sanger', 'Paul Berg', 'Stanley Cohen',
+    'Herbert Boyer', 'Kary Mullis', 'Hamilton Smith', 'Andrew Fire', 'Craig Mello', 'Elizabeth Blackburn', 'Carol Greider', 'Jack Szostak',
+    'Shinya Yamanaka', 'John Gurdon', 'Mario Capecchi', 'Martin Evans', 'Oliver Smithies', 'Marshall Nirenberg', 'Har Gobind Khorana', 'Robert Holley',
+    'Arthur Kornberg', 'Joshua Lederberg', 'George Beadle', 'Edward Tatum', 'Barbara McClintock', 'Salvador Luria', 'Max Delbruck', 'Alfred Hershey',
+    'John Kendrew', 'Max Perutz', 'Linus Pauling', 'Melvin Calvin', 'Harold Urey', 'Willard Libby', 'Glenn Seaborg', 'Edwin McMillan',
+    'Ernest Lawrence', 'John Cockcroft', 'Ernest Walton', 'Otto Hahn', 'Fritz Strassmann', 'Lise Meitner', 'Otto Frisch', 'Max Born',
+    'Pascual Jordan', 'Eugene Wigner', 'John Von Neumann', 'Alan Turing', 'Norbert Wiener', 'Claude Shannon', 'John McCarthy', 'Marvin Minsky',
+    'Seymour Papert', 'Allen Newell', 'Herbert Simon', 'Edward Feigenbaum', 'Edward Shortliffe', 'Bruce Buchanan', 'Doug Lenat', 'Randall Davis',
+    'Roger Schank', 'Robert Abelson'
   ],
 
-  // Philosophers (Last names or recognizable names)
+  // Philosophers (Full names: First Last)
   philosophers: [
-    'Socrates', 'Plato', 'Aristotle', 'Confucius', 'Laozi', 'Buddha', 'Kant', 'Hegel',
-    'Nietzsche', 'Schopenhauer', 'Kierkegaard', 'Sartre', 'Camus', 'Heidegger', 'Husserl', 'Wittgenstein',
-    'Descartes', 'Spinoza', 'Leibniz', 'Locke', 'Hume', 'Berkeley', 'Rousseau', 'Voltaire',
-    'Mill', 'Bentham', 'Rawls', 'Nozick', 'Dworkin', 'Habermas', 'Foucault', 'Derrida',
-    'Deleuze', 'Guattari', 'Badiou', 'Zizek', 'Chomsky', 'Searle', 'Davidson', 'Quine',
-    'Putnam', 'Kripke', 'Lewis', 'Armstrong', 'Dennett', 'Nagel', 'Jackson', 'Churchland',
-    'Fodor', 'Dretske', 'Block', 'Chalmers', 'Russell', 'Moore', 'Ayer', 'Ryle',
-    'Austin', 'Strawson', 'Grice', 'Sellars', 'Kuhn', 'Lakatos', 'Feyerabend', 'Popper',
-    'Goodman'
+    'Socrates', 'Plato', 'Aristotle', 'Confucius', 'Laozi', 'Buddha', 'Immanuel Kant', 'Georg Hegel',
+    'Friedrich Nietzsche', 'Arthur Schopenhauer', 'Soren Kierkegaard', 'Jean-Paul Sartre', 'Albert Camus', 'Martin Heidegger', 'Edmund Husserl', 'Ludwig Wittgenstein',
+    'Rene Descartes', 'Baruch Spinoza', 'Gottfried Leibniz', 'John Locke', 'David Hume', 'George Berkeley', 'Jean-Jacques Rousseau', 'Voltaire',
+    'John Stuart Mill', 'Jeremy Bentham', 'John Rawls', 'Robert Nozick', 'Ronald Dworkin', 'Jurgen Habermas', 'Michel Foucault', 'Jacques Derrida',
+    'Gilles Deleuze', 'Felix Guattari', 'Alain Badiou', 'Slavoj Zizek', 'Noam Chomsky', 'John Searle', 'Donald Davidson', 'Willard Quine',
+    'Hilary Putnam', 'Saul Kripke', 'David Lewis', 'David Armstrong', 'Daniel Dennett', 'Thomas Nagel', 'Frank Jackson', 'Patricia Churchland',
+    'Jerry Fodor', 'Fred Dretske', 'Ned Block', 'David Chalmers', 'Bertrand Russell', 'GE Moore', 'AJ Ayer', 'Gilbert Ryle',
+    'JL Austin', 'PF Strawson', 'HP Grice', 'Wilfrid Sellars', 'Thomas Kuhn', 'Imre Lakatos', 'Paul Feyerabend', 'Karl Popper',
+    'Nelson Goodman'
   ],
 
-  // Politicians (Last names or recognizable names)
+  // Politicians (Full names: First Last)
   politicians: [
-    'Lincoln', 'Washington', 'Jefferson', 'Roosevelt', 'Kennedy', 'Reagan', 'Clinton', 'Obama',
-    'Churchill', 'Thatcher', 'Blair', 'Cameron', 'May', 'Johnson', 'Sunak', 'Starmer',
-    'Gandhi', 'Mandela', 'MLK', 'King', 'MalcolmX', 'RosaParks', 'Anthony', 'Stanton',
-    'Truth', 'Tubman', 'Douglass', 'BookerT', 'DuBois', 'Garvey', 'Marshall', 'Lewis',
-    'Ginsburg', 'Sotomayor', 'Kagan', 'Breyer', 'Scalia', 'Thomas', 'Alito', 'Roberts',
-    'Gorsuch', 'Kavanaugh', 'Barrett', 'Jackson', 'Biden', 'Harris', 'Pence', 'Pelosi',
-    'Schumer', 'McConnell', 'McCarthy', 'Jeffries', 'OcasioCortez', 'Sanders', 'Warren', 'Buttigieg',
-    'Yang', 'Booker', 'Klobuchar', 'Gillibrand', 'Castro', 'Gabbard', 'Williamson', 'Steyer',
-    'Bloomberg', 'Bennet', 'Delaney', 'Hickenlooper', 'Inslee', 'Ryan', 'Sestak', 'Moulton',
-    'DeBlasio', 'Bullock', 'Trump', 'Bush', 'Cheney', 'Gore', 'Kerry', 'McCain',
-    'Romney', 'Kaine'
+    'Abraham Lincoln', 'George Washington', 'Thomas Jefferson', 'Franklin Roosevelt', 'John Kennedy', 'Ronald Reagan', 'Bill Clinton', 'Barack Obama',
+    'Winston Churchill', 'Margaret Thatcher', 'Tony Blair', 'David Cameron', 'Theresa May', 'Boris Johnson', 'Rishi Sunak', 'Keir Starmer',
+    'Mahatma Gandhi', 'Nelson Mandela', 'Martin Luther King', 'Malcolm X', 'Rosa Parks', 'Susan Anthony', 'Elizabeth Stanton', 'Sojourner Truth',
+    'Harriet Tubman', 'Frederick Douglass', 'Booker T Washington', 'WEB Du Bois', 'Marcus Garvey', 'Thurgood Marshall', 'John Lewis', 'Ruth Bader Ginsburg',
+    'Sonia Sotomayor', 'Elena Kagan', 'Stephen Breyer', 'Antonin Scalia', 'Clarence Thomas', 'Samuel Alito', 'John Roberts', 'Neil Gorsuch',
+    'Brett Kavanaugh', 'Amy Barrett', 'Ketanji Jackson', 'Joe Biden', 'Kamala Harris', 'Mike Pence', 'Nancy Pelosi', 'Chuck Schumer',
+    'Mitch McConnell', 'Kevin McCarthy', 'Hakeem Jeffries', 'Alexandria Ocasio-Cortez', 'Bernie Sanders', 'Elizabeth Warren', 'Pete Buttigieg', 'Andrew Yang',
+    'Cory Booker', 'Amy Klobuchar', 'Kirsten Gillibrand', 'Julian Castro', 'Tulsi Gabbard', 'Marianne Williamson', 'Tom Steyer', 'Michael Bloomberg',
+    'Michael Bennet', 'John Delaney', 'John Hickenlooper', 'Jay Inslee', 'Tim Ryan', 'Joe Sestak', 'Seth Moulton', 'Bill De Blasio',
+    'Steve Bullock', 'Donald Trump', 'George Bush', 'Dick Cheney', 'Al Gore', 'John Kerry', 'John McCain', 'Mitt Romney',
+    'Tim Kaine'
   ],
 
-  // Business Leaders (Last names or recognizable names)
+  // Business Leaders (Full names: First Last)
   businessLeaders: [
-    'Jobs', 'Gates', 'Musk', 'Bezos', 'Buffett', 'Zuckerberg', 'Page', 'Brin',
-    'Cook', 'Nadella', 'Pichai', 'Schmidt', 'Ballmer', 'Ellison', 'Dell', 'Grove',
-    'Welch', 'Iacocca', 'Ford', 'Carnegie', 'Rockefeller', 'Vanderbilt', 'Morgan', 'Disney',
-    'Warner', 'Goldwyn', 'Mayer', 'Zanuck', 'Cohn', 'Laemmle', 'Fox', 'Sarnoff',
-    'Paley', 'Goldenson', 'Turner', 'Murdoch', 'Redstone', 'Iger', 'Chapek', 'Stankey',
-    'Stephenson', 'Roberts', 'Rutledge', 'Drahi', 'Vestberg', 'Sievert', 'Claure', 'Son',
-    'Ma', 'PonyMa', 'Ren', 'LeiJun', 'Li', 'Liu', 'WangXing', 'ChengWei',
-    'ZhangYiming', 'Mayer', 'Hastings', 'Zaslav', 'Bakish'
+    'Steve Jobs', 'Bill Gates', 'Elon Musk', 'Jeff Bezos', 'Warren Buffett', 'Mark Zuckerberg', 'Larry Page', 'Sergey Brin',
+    'Tim Cook', 'Satya Nadella', 'Sundar Pichai', 'Eric Schmidt', 'Steve Ballmer', 'Larry Ellison', 'Michael Dell', 'Andy Grove',
+    'Jack Welch', 'Lee Iacocca', 'Henry Ford', 'Andrew Carnegie', 'John Rockefeller', 'Cornelius Vanderbilt', 'JP Morgan', 'Walt Disney',
+    'Harry Warner', 'Samuel Goldwyn', 'Louis Mayer', 'Darryl Zanuck', 'Harry Cohn', 'Carl Laemmle', 'William Fox', 'David Sarnoff',
+    'William Paley', 'Leonard Goldenson', 'Ted Turner', 'Rupert Murdoch', 'Sumner Redstone', 'Bob Iger', 'Bob Chapek', 'John Stankey',
+    'Randall Stephenson', 'Brian Roberts', 'Tom Rutledge', 'Patrick Drahi', 'Hans Vestberg', 'Mike Sievert', 'Marcelo Claure', 'Masayoshi Son',
+    'Jack Ma', 'Pony Ma', 'Ren Zhengfei', 'Lei Jun', 'Robin Li', 'Richard Liu', 'Wang Xing', 'Cheng Wei',
+    'Zhang Yiming', 'Kevin Mayer', 'Reed Hastings', 'David Zaslav', 'Bob Bakish'
   ],
 
-  // Academicians & Researchers (Last names or recognizable names)
+  // Academicians & Researchers (Full names: First Last)
   academicians: [
-    'Turing', 'VonNeumann', 'McCarthy', 'Minsky', 'Papert', 'Newell', 'Simon', 'Feigenbaum',
-    'Shortliffe', 'Buchanan', 'Lenat', 'Davis', 'Schank', 'Abelson', 'Shannon', 'Wiener',
-    'VonNeumann', 'Turing', 'McCarthy', 'Minsky', 'Papert', 'Newell', 'Simon', 'Feigenbaum'
+    'Alan Turing', 'John Von Neumann', 'John McCarthy', 'Marvin Minsky', 'Seymour Papert', 'Allen Newell', 'Herbert Simon', 'Edward Feigenbaum',
+    'Edward Shortliffe', 'Bruce Buchanan', 'Doug Lenat', 'Randall Davis', 'Roger Schank', 'Robert Abelson', 'Claude Shannon', 'Norbert Wiener'
   ],
 
   // US Movie Names (Complete titles, no spaces)
