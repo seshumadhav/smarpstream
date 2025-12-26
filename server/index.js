@@ -34,7 +34,9 @@ function generateSessionId() {
     // Fallback if no names available
     return `Session${Date.now()}`;
   }
-  return allNames[Math.floor(Math.random() * allNames.length)];
+  const selectedName = allNames[Math.floor(Math.random() * allNames.length)];
+  // Convert to lowercase and replace spaces with hyphens for URL-friendly format
+  return selectedName.toLowerCase().replace(/\s+/g, '-');
 }
 
 const app = express();
