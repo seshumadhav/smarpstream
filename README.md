@@ -162,6 +162,18 @@ REACT_APP_API_URL=http://localhost:5000
 - Image uploads are limited to 10MB
 - Sessions automatically expire after 24 hours
 
+## AWS Production Deployment
+
+### Instance Details
+- **Public IPv4 Address**: 44.223.20.123
+- **Public DNS**: ec2-44-223-20-123.compute-1.amazonaws.com
+- **Instance Name**: smarpstream-prod
+- **Security Group**: smarpstream-sg
+
+### Access
+- SSH: `ssh -i /path/to/key.pem ubuntu@44.223.20.123`
+- Web: `http://44.223.20.123` or `http://ec2-44-223-20-123.compute-1.amazonaws.com`
+
 ## License
 
 MIT
