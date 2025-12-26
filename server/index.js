@@ -8,30 +8,33 @@ const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const sessionNames = require('./session-names');
 
-// Use expanded session name lists
-const adjectives = sessionNames.adjectives;
-const nouns = sessionNames.nouns;
-const longWords = sessionNames.longWords;
-const techWords = sessionNames.techWords || [];
+// Use session name lists
+const scientists = sessionNames.scientists || [];
+const philosophers = sessionNames.philosophers || [];
+const politicians = sessionNames.politicians || [];
+const businessLeaders = sessionNames.businessLeaders || [];
+const academicians = sessionNames.academicians || [];
+const usMovies = sessionNames.usMovies || [];
+const ukMovies = sessionNames.ukMovies || [];
 
-// Generate catchy session ID (2 words or 1 long word)
+// Combine all categories into one array for random selection
+const allNames = [
+  ...scientists,
+  ...philosophers,
+  ...politicians,
+  ...businessLeaders,
+  ...academicians,
+  ...usMovies,
+  ...ukMovies
+];
+
+// Generate session ID from all available names
 function generateSessionId() {
-  // 60% chance of two words (adj + noun), 25% chance of one long word, 15% chance of tech word
-  const rand = Math.random();
-  if (rand < 0.6) {
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    return `${adj}${noun}`;
-  } else if (rand < 0.85) {
-    return longWords[Math.floor(Math.random() * longWords.length)];
-  } else {
-    // Use tech words if available
-    if (techWords.length > 0) {
-      return techWords[Math.floor(Math.random() * techWords.length)];
-    }
-    // Fallback to long words if tech words not available
-    return longWords[Math.floor(Math.random() * longWords.length)];
+  if (allNames.length === 0) {
+    // Fallback if no names available
+    return `Session${Date.now()}`;
   }
+  return allNames[Math.floor(Math.random() * allNames.length)];
 }
 
 const app = express();
