@@ -6,42 +6,30 @@ const path = require('path');
 const multer = require('multer');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
+const sessionNames = require('./session-names');
 
-// Catchy word lists for generating session IDs
-const adjectives = [
-  'Swift', 'Bright', 'Sharp', 'Bold', 'Quick', 'Smart', 'Fast', 'Cool',
-  'Fresh', 'Prime', 'Elite', 'Noble', 'Royal', 'Grand', 'Super', 'Ultra',
-  'Mega', 'Turbo', 'Flash', 'Blaze', 'Storm', 'Thunder', 'Lightning', 'Rocket',
-  'Apex', 'Peak', 'Summit', 'Zenith', 'Crown', 'Star', 'Nova', 'Cosmic',
-  'Epic', 'Legend', 'Mythic', 'Divine', 'Sacred', 'Ancient', 'Eternal', 'Infinite'
-];
-
-const nouns = [
-  'Tiger', 'Eagle', 'Shark', 'Lion', 'Wolf', 'Bear', 'Falcon', 'Hawk',
-  'Phoenix', 'Dragon', 'Jaguar', 'Panther', 'Leopard', 'Cobra', 'Viper',
-  'Arrow', 'Blade', 'Sword', 'Shield', 'Crown', 'Star', 'Moon', 'Sun',
-  'Comet', 'Asteroid', 'Nebula', 'Galaxy', 'Orbit', 'Nova', 'Pulse', 'Wave',
-  'Vortex', 'Quantum', 'Matrix', 'Nexus', 'Prism', 'Crystal', 'Oracle', 'Sage'
-];
-
-// Single long catchy words
-const longWords = [
-  'Thunderbolt', 'Lightning', 'Firestorm', 'Blizzard', 'Hurricane', 'Tornado',
-  'Avalanche', 'Volcano', 'Tsunami', 'Earthquake', 'Supernova', 'Blackhole',
-  'MilkyWay', 'Andromeda', 'Constellation', 'Meteorite', 'Asteroid', 'Comet',
-  'Phantom', 'Shadow', 'Mystic', 'Enigma', 'Riddle', 'Puzzle', 'Cipher',
-  'Vortex', 'Quantum', 'Matrix', 'Nexus', 'Prism', 'Crystal', 'Oracle',
-  'Sage', 'Wizard', 'Sorcerer', 'Mage', 'Warlock', 'Druid', 'Shaman'
-];
+// Use expanded session name lists
+const adjectives = sessionNames.adjectives;
+const nouns = sessionNames.nouns;
+const longWords = sessionNames.longWords;
+const techWords = sessionNames.techWords || [];
 
 // Generate catchy session ID (2 words or 1 long word)
 function generateSessionId() {
-  // 70% chance of two words, 30% chance of one long word
-  if (Math.random() < 0.7) {
+  // 60% chance of two words (adj + noun), 25% chance of one long word, 15% chance of tech word
+  const rand = Math.random();
+  if (rand < 0.6) {
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
     return `${adj}${noun}`;
+  } else if (rand < 0.85) {
+    return longWords[Math.floor(Math.random() * longWords.length)];
   } else {
+    // Use tech words if available
+    if (techWords.length > 0) {
+      return techWords[Math.floor(Math.random() * techWords.length)];
+    }
+    // Fallback to long words if tech words not available
     return longWords[Math.floor(Math.random() * longWords.length)];
   }
 }
