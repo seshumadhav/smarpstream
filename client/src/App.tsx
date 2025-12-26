@@ -140,19 +140,71 @@ function SessionPage() {
   return <SessionRoom sessionId={sessionId!} session={session} />;
 }
 
+// Confirmation Modal Component
+function ConfirmModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: () => void;
+  title: string;
+  message: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">{title}</h3>
+        </div>
+        <div className="modal-body">
+          <p className="modal-message">{message}</p>
+        </div>
+        <div className="modal-footer">
+          <button className="modal-btn modal-btn-cancel" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="modal-btn modal-btn-confirm" onClick={onConfirm}>
+            Disconnect
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Session Room component
 function SessionRoom({ sessionId, session }: { sessionId: string; session: any }) {
   const navigate = useNavigate();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleHomeClick = () => {
-    const confirmed = window.confirm('Are you sure you want to disconnect from the call and return to home?');
-    if (confirmed) {
-      navigate('/');
-    }
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    setShowConfirmModal(false);
+    navigate('/');
+  };
+
+  const handleCancel = () => {
+    setShowConfirmModal(false);
   };
 
   return (
     <div className="session-room">
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={handleCancel}
+        onConfirm={handleConfirm}
+        title="Leave Call?"
+        message="Are you sure you want to disconnect from the call and return to home?"
+      />
       <div className="page-header">
         <h1 className="page-heading">
           <span className="home-link-header" onClick={handleHomeClick}>Smarp Stream</span>
@@ -170,24 +222,40 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
 // Session Header
 function SessionHeader({ session }: { session: any }) {
   const navigate = useNavigate();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleHomeClick = () => {
-    const confirmed = window.confirm('Are you sure you want to disconnect from the call and return to home?');
-    if (confirmed) {
-      navigate('/');
-    }
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    setShowConfirmModal(false);
+    navigate('/');
+  };
+
+  const handleCancel = () => {
+    setShowConfirmModal(false);
   };
 
   return (
-    <div className="session-header">
-      <div className="header-content">
-        <h2 className="session-title">
-          <span className="home-link" onClick={handleHomeClick}>Smarp Stream</span>
-          <span className="session-separator"> → </span>
-          <span className="session-name">{session.title}</span>
-        </h2>
+    <>
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={handleCancel}
+        onConfirm={handleConfirm}
+        title="Leave Call?"
+        message="Are you sure you want to disconnect from the call and return to home?"
+      />
+      <div className="session-header">
+        <div className="header-content">
+          <h2 className="session-title">
+            <span className="home-link" onClick={handleHomeClick}>Smarp Stream</span>
+            <span className="session-separator"> → </span>
+            <span className="session-name">{session.title}</span>
+          </h2>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
