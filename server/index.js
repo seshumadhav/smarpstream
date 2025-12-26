@@ -35,8 +35,11 @@ function generateSessionId() {
     return `Session${Date.now()}`;
   }
   const selectedName = allNames[Math.floor(Math.random() * allNames.length)];
-  // Convert to lowercase and replace spaces with hyphens for URL-friendly format
-  return selectedName.toLowerCase().replace(/\s+/g, '-');
+  // Convert to CamelCase: remove spaces and capitalize first letter of each word
+  return selectedName
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
 }
 
 const app = express();
