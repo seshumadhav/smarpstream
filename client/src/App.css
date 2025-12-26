@@ -123,6 +123,15 @@ body {
   margin-bottom: 0;
 }
 
+.session-link-container {
+  min-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  transition: min-height 0.3s ease, margin 0.3s ease, padding 0.3s ease, border 0.3s ease;
+  overflow: hidden;
+}
+
 .form-group {
   margin-bottom: 24px;
 }
@@ -272,7 +281,8 @@ body {
   transform: none;
 }
 
-.session-link-container {
+.session-link-container:not(:empty) {
+  min-height: 80px;
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);

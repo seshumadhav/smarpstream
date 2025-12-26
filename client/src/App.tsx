@@ -61,8 +61,8 @@ function Home() {
             </button>
           </form>
           
-          {sessionLink && (
-            <div className="session-link-container">
+          <div className="session-link-container">
+            {sessionLink && (
               <div className="session-link-wrapper">
                 <span className="session-link-label">Your call link:</span>
                 <span className="session-link-text-wrapper">
@@ -77,8 +77,8 @@ function Home() {
                   </button>
                 </span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="features">
