@@ -171,7 +171,7 @@ REACT_APP_API_URL=http://localhost:5000
 - **Security Group**: smarpstream-sg
 
 ### Access
-- SSH: `ssh -i ~/.keys/smarpstream-key.pem ubuntu@44.223.20.123`
+- SSH: `ssh -i ~/.keys/smarpstream-key.pem ec2-user@44.223.20.123`
 - Web: `http://44.223.20.123` or `http://ec2-44-223-20-123.compute-1.amazonaws.com`
 
 ## License
