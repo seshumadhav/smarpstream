@@ -1016,13 +1016,29 @@ body {
   font-size: 14px;
   color: #fff;
   background-color: #1a1a1a;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease;
   resize: none;
   overflow-y: auto;
   min-height: 44px;
-  max-height: 200px;
+  max-height: 150px;
   font-family: inherit;
   line-height: 1.5;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.chat-input::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-input::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 
 .chat-input:focus {
