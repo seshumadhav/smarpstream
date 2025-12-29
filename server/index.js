@@ -235,7 +235,7 @@ io.on('connection', (socket) => {
     const session = sessions.get(sessionId);
     if (session) {
       session.participants = session.participants.filter(p => p !== userId);
-      socket.to(sessionId).emit('user-left', { userId });
+      socket.to(sessionId).emit('user-left', { userId, socketId: socket.id });
     }
   });
   

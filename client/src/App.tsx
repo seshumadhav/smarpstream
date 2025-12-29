@@ -479,16 +479,18 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     });
 
     // Handle user left
-    socket.on('user-left', ({ userId }: { userId: string }) => {
+    socket.on('user-left', ({ userId, socketId: leftSocketId }: { userId: string; socketId?: string }) => {
+      console.log('User left:', userId, 'socketId:', leftSocketId);
+      const socketIdToRemove = leftSocketId || userId;
       setRemoteStreams(prev => {
         const newMap = new Map(prev);
-        newMap.delete(userId);
+        newMap.delete(socketIdToRemove);
         return newMap;
       });
-      const pc = peersRef.current.get(userId);
+      const pc = peersRef.current.get(socketIdToRemove);
       if (pc) {
         pc.close();
-        peersRef.current.delete(userId);
+        peersRef.current.delete(socketIdToRemove);
         setPeers(new Map(peersRef.current));
       }
     });
