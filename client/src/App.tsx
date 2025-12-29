@@ -63,11 +63,29 @@ function Home() {
     }
   };
 
-  const copyLink = () => {
+  const copyLink = async () => {
     if (sessionLink) {
-      navigator.clipboard.writeText(sessionLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(sessionLink);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        // Fallback for older browsers or if clipboard API fails
+        const textArea = document.createElement('textarea');
+        textArea.value = sessionLink;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch (fallbackErr) {
+          console.error('Failed to copy:', fallbackErr);
+        }
+        document.body.removeChild(textArea);
+      }
     }
   };
 
@@ -319,13 +337,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           audio: true
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        // Disable video and audio tracks by default
+        // Enable audio by default, disable video by default
         stream.getVideoTracks().forEach(track => {
           track.enabled = false;
         });
         stream.getAudioTracks().forEach(track => {
-          track.enabled = false;
+          track.enabled = true; // Enable audio by default
         });
+        setIsAudioEnabled(true); // Set audio state to enabled
         localStreamRef.current = stream;
         setLocalStream(stream);
         if (videoRef.current) {
@@ -360,11 +379,15 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
 
       // Handle remote stream
       pc.ontrack = (event) => {
-        setRemoteStreams(prev => {
-          const newMap = new Map(prev);
-          newMap.set(socketId, event.streams[0]);
-          return newMap;
-        });
+        console.log('Received remote track from', socketId, event.streams);
+        if (event.streams && event.streams.length > 0) {
+          setRemoteStreams(prev => {
+            const newMap = new Map(prev);
+            newMap.set(socketId, event.streams[0]);
+            console.log('Updated remote streams:', Array.from(newMap.keys()));
+            return newMap;
+          });
+        }
       };
 
       // Handle ICE candidates
@@ -408,11 +431,15 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       }
 
       pc.ontrack = (event) => {
-        setRemoteStreams(prev => {
-          const newMap = new Map(prev);
-          newMap.set(from, event.streams[0]);
-          return newMap;
-        });
+        console.log('Received remote track from', from, event.streams);
+        if (event.streams && event.streams.length > 0) {
+          setRemoteStreams(prev => {
+            const newMap = new Map(prev);
+            newMap.set(from, event.streams[0]);
+            console.log('Updated remote streams:', Array.from(newMap.keys()));
+            return newMap;
+          });
+        }
       };
 
       pc.onicecandidate = (event) => {
@@ -481,13 +508,26 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
   // Update remote videos
   useEffect(() => {
     if (remoteVideosRef.current) {
-      remoteVideosRef.current.innerHTML = '';
+      // Clear existing videos
+      while (remoteVideosRef.current.firstChild) {
+        remoteVideosRef.current.removeChild(remoteVideosRef.current.firstChild);
+      }
+      
+      // Add new video elements for each remote stream
       remoteStreams.forEach((stream, socketId) => {
         const video = document.createElement('video');
         video.srcObject = stream;
         video.autoplay = true;
         video.playsInline = true;
+        video.muted = false; // Unmute remote videos to hear audio
         video.className = 'remote-video';
+        video.setAttribute('data-socket-id', socketId);
+        
+        // Add event listeners for debugging
+        video.onloadedmetadata = () => {
+          video.play().catch(err => console.error('Error playing remote video:', err));
+        };
+        
         remoteVideosRef.current?.appendChild(video);
       });
     }
@@ -515,11 +555,29 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     }
   };
 
-  const copyLink = () => {
+  const copyLink = async () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers or if clipboard API fails
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (fallbackErr) {
+        console.error('Failed to copy:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   return (
