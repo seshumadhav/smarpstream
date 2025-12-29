@@ -99,9 +99,10 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
   margin-bottom: 12px;
+  gap: 16px;
 }
 
 /* Home page - heading without wrapper */
@@ -123,7 +124,6 @@ body {
   min-width: 40px;
   height: 40px;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .back-button:hover {
@@ -591,6 +591,7 @@ body {
   display: flex;
   flex-direction: column;
   border-right: 2px solid rgba(255, 255, 255, 0.12);
+  margin-right: 5px;
   height: 100%;
   overflow: hidden;
   width: 50%;
@@ -903,6 +904,7 @@ body {
   flex-shrink: 0;
   min-width: 0;
   border-left: 2px solid rgba(255, 255, 255, 0.12);
+  margin-left: 5px;
   position: relative;
   overflow: hidden;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);

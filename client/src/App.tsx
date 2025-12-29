@@ -101,7 +101,7 @@ function Home() {
         <div className="card">
           <form onSubmit={createSession} className="session-form">
             <button type="submit" className="create-btn create-btn-highlighted" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Call'}
+              {loading ? 'Creating...' : 'Start Session'}
             </button>
           </form>
           
