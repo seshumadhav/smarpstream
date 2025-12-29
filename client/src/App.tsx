@@ -477,13 +477,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       setPeers(new Map(peersRef.current));
 
       // Add local stream tracks to peer connection
-      // IMPORTANT: Add tracks as-is (disabled). They're part of the connection.
-      // When enabled later via toggle, they'll start sending without renegotiation.
+      // CRITICAL: Tracks MUST be enabled when added to peer connection for proper SDP negotiation
+      // We'll control mute/unmute via track.enabled, but tracks need to be enabled in the connection
       const stream = localStreamRef.current;
       if (stream) {
         stream.getTracks().forEach(track => {
+          // Enable track temporarily for adding to peer connection
+          const originalEnabled = track.enabled;
+          track.enabled = true;
           pc.addTrack(track, stream);
-          console.log('Added track to peer connection:', track.kind, 'enabled:', track.enabled, 'socketId:', socketId);
+          // Keep track enabled in peer connection, but we'll control it via UI state
+          // The track.enabled will be toggled by the user, but it's already in the connection
+          console.log('Added track to peer connection:', track.kind, 'enabled in connection:', track.enabled, 'socketId:', socketId);
+          // Restore the original state for UI consistency
+          track.enabled = originalEnabled;
         });
       }
 
@@ -584,8 +591,13 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const stream = localStreamRef.current;
         if (stream) {
           stream.getTracks().forEach(track => {
+            // Enable track temporarily for adding to peer connection
+            const originalEnabled = track.enabled;
+            track.enabled = true;
             pc!.addTrack(track, stream);
-            console.log('Added track to peer connection (offer handler):', track.kind, 'enabled:', track.enabled, 'from:', from);
+            console.log('Added track to peer connection (offer handler):', track.kind, 'enabled in connection:', track.enabled, 'from:', from);
+            // Restore the original state for UI consistency
+            track.enabled = originalEnabled;
           });
         }
 
