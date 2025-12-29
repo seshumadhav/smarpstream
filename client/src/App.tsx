@@ -1059,9 +1059,26 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     }
   };
 
-  const copyLink = async () => {
+  const copyLink = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const url = window.location.href;
-    // Always use fallback method for better compatibility
+    
+    // Try modern clipboard API first (works best on desktop)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch (clipboardErr) {
+        console.log('Clipboard API failed, trying fallback:', clipboardErr);
+      }
+    }
+    
+    // Fallback for older browsers or when clipboard API fails
     const textArea = document.createElement('textarea');
     textArea.value = url;
     textArea.style.position = 'fixed';
@@ -1074,36 +1091,39 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     textArea.style.outline = 'none';
     textArea.style.boxShadow = 'none';
     textArea.style.background = 'transparent';
+    textArea.style.opacity = '0';
+    textArea.style.pointerEvents = 'none';
+    textArea.setAttribute('readonly', '');
     document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
+    
+    // For iOS
+    if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+      const range = document.createRange();
+      range.selectNodeContents(textArea);
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      textArea.setSelectionRange(0, 999999);
+    } else {
+      textArea.select();
+      textArea.setSelectionRange(0, 999999);
+    }
+    
     try {
       const successful = document.execCommand('copy');
       if (successful) {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       } else {
-        // Try clipboard API as fallback
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(url);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        }
+        console.error('execCommand copy failed');
       }
     } catch (err) {
       console.error('Failed to copy:', err);
-      // Try clipboard API as last resort
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(url);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        }
-      } catch (clipboardErr) {
-        console.error('Clipboard API also failed:', clipboardErr);
-      }
+    } finally {
+      document.body.removeChild(textArea);
     }
-    document.body.removeChild(textArea);
   };
 
   return (
