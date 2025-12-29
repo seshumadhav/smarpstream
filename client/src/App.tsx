@@ -241,6 +241,7 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
 
   return (
     <div className="session-room">
+      <div className="deployment-info">Last deployed: 2025-12-29 8:30 PT</div>
       <ConfirmModal
         isOpen={showConfirmModal}
         onClose={handleCancel}
