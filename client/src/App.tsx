@@ -391,8 +391,22 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsVideoEnabled(false); // Set video state to disabled
         localStreamRef.current = stream;
         setLocalStream(stream);
+        
+        // Disable video track by default
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.enabled = false;
+        }
+        
+        // Disable audio track by default
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = false;
+        }
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.style.display = 'none'; // Hide video by default
         }
         
         // Setup audio level monitoring
@@ -1004,6 +1018,11 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         videoTrack.enabled = newState;
         setIsVideoEnabled(newState);
         console.log('Video track enabled:', newState, 'Track ID:', videoTrack.id);
+        
+        // Show/hide video element based on state
+        if (videoRef.current) {
+          videoRef.current.style.display = newState ? 'block' : 'none';
+        }
         
         // Update all peer connections - ensure tracks are in senders
         peersRef.current.forEach((pc, socketId) => {
