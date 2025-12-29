@@ -337,22 +337,6 @@ const playLeaveSound = () => {
   setTimeout(() => playSound(400, 0.15, 'square'), 80);
 };
 
-// Audio Level Indicator Component - Simple visual indicator without mic icon
-function AudioLevelIndicator({ level, isLocal }: { level: number; isLocal: boolean }) {
-  // Convert level (0-100) to intensity (0-5)
-  const intensity = Math.min(5, Math.ceil((level / 100) * 5));
-  const isActive = intensity > 0;
-  
-  return (
-    <div className={`audio-level-indicator ${isLocal ? 'local' : 'remote'} ${isActive ? 'active' : ''}`} title={`Audio level: ${intensity}/5`}>
-      <div className="audio-level-dot" style={{ 
-        opacity: isActive ? 1 : 0.3,
-        transform: `scale(${0.8 + (intensity / 5) * 0.4})`
-      }}></div>
-      {intensity > 0 && <div className="audio-level-badge">{intensity}</div>}
-    </div>
-  );
-}
 
 // Video Section
 function VideoSection({ sessionId, session }: { sessionId: string; session: any }) {
@@ -1166,9 +1150,6 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               className="participant-video local-participant-video"
             />
             <div className="participant-label">You</div>
-            <div className="audio-indicator-wrapper">
-              <AudioLevelIndicator level={localAudioLevel} isLocal={true} />
-          </div>
         </div>
       </div>
         
@@ -1176,14 +1157,6 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         <div className="video-participant remote-participant">
           <div className="video-participant-wrapper">
             <div className="remote-videos" ref={remoteVideosRef}></div>
-            {Array.from(remoteStreams.keys()).map((socketId) => {
-              const audioLevel = remoteAudioLevels.get(socketId) || 0;
-              return (
-                <div key={socketId} className="audio-indicator-wrapper remote">
-                  <AudioLevelIndicator level={audioLevel} isLocal={false} />
-                </div>
-              );
-            })}
             {remoteStreams.size === 0 && (
               <div className="no-participant-message">Waiting for participant...</div>
             )}
