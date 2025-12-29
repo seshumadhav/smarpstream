@@ -812,6 +812,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
             });
           }
         };
+      }
+      
       // Perfect Negotiation: Handle offer with collision detection
       if (pc) {
         try {
