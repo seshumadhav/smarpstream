@@ -468,8 +468,11 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         userIdToSocketIdRef.current.set(joinedUserId, socketId);
       }
       
-      // Play join sound
+      // Play join sound locally
       playJoinSound();
+      
+      // Notify others to play join sound
+      socket.emit('play-sound', { sessionId, soundType: 'join' });
 
       const pc = new RTCPeerConnection(pcConfig);
       peersRef.current.set(socketId, pc);
@@ -630,8 +633,11 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     socket.on('user-left', ({ userId, socketId: leftSocketId }: { userId: string; socketId?: string }) => {
       console.log('User left:', userId, 'socketId:', leftSocketId);
       
-      // Play leave sound
+      // Play leave sound locally
       playLeaveSound();
+      
+      // Notify others to play leave sound
+      socket.emit('play-sound', { sessionId, soundType: 'leave' });
       
       const socketIdToRemove = leftSocketId || userId;
       setRemoteStreams(prev => {
@@ -736,8 +742,30 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     if (stream) {
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled = !isVideoEnabled;
-        setIsVideoEnabled(!isVideoEnabled);
+        const newState = !isVideoEnabled;
+        videoTrack.enabled = newState;
+        setIsVideoEnabled(newState);
+        
+        // When enabling video, ensure it's properly added to all peer connections
+        if (newState) {
+          peersRef.current.forEach((pc, socketId) => {
+            // Check if track is already in the connection
+            const sender = pc.getSenders().find(s => s.track === videoTrack);
+            if (!sender) {
+              // Add track if not already added
+              pc.addTrack(videoTrack, stream);
+              // Create new offer to renegotiate
+              pc.createOffer().then(offer => {
+                pc.setLocalDescription(offer);
+                socketRef.current?.emit('offer', {
+                  sessionId,
+                  offer,
+                  targetId: socketId
+                });
+              }).catch(err => console.error('Error creating offer for video:', err));
+            }
+          });
+        }
       }
     }
   };
@@ -747,8 +775,30 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     if (stream) {
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = !isAudioEnabled;
-        setIsAudioEnabled(!isAudioEnabled);
+        const newState = !isAudioEnabled;
+        audioTrack.enabled = newState;
+        setIsAudioEnabled(newState);
+        
+        // When enabling audio, ensure it's properly added to all peer connections
+        if (newState) {
+          peersRef.current.forEach((pc, socketId) => {
+            // Check if track is already in the connection
+            const sender = pc.getSenders().find(s => s.track === audioTrack);
+            if (!sender) {
+              // Add track if not already added
+              pc.addTrack(audioTrack, stream);
+              // Create new offer to renegotiate
+              pc.createOffer().then(offer => {
+                pc.setLocalDescription(offer);
+                socketRef.current?.emit('offer', {
+                  sessionId,
+                  offer,
+                  targetId: socketId
+                });
+              }).catch(err => console.error('Error creating offer for audio:', err));
+            }
+          });
+        }
       }
     }
   };

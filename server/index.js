@@ -234,6 +234,11 @@ io.on('connection', (socket) => {
     socket.to(sessionId).emit('audio-level', { userId, level });
   });
   
+  // Play sound notifications
+  socket.on('play-sound', ({ sessionId, soundType }) => {
+    socket.to(sessionId).emit('play-sound', { soundType });
+  });
+  
   // Leave session
   socket.on('leave-session', ({ sessionId, userId }) => {
     socket.leave(sessionId);
