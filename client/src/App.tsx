@@ -250,7 +250,8 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
         message="Are you sure you want to disconnect from the call and return to home?"
       />
       <div className="page-header">
-        <div className="header-left">
+        <div className="header-content-wrapper">
+          <h1 className="page-heading">Smarp Stream</h1>
           <button 
             onClick={handleHomeClick}
             className="back-button"
