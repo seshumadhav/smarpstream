@@ -551,63 +551,78 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     socket.on('offer', async ({ offer, from }: { offer: RTCSessionDescriptionInit; from: string }) => {
       if (from === socket.id) return;
 
-      const pc = new RTCPeerConnection(pcConfig);
-      peersRef.current.set(from, pc);
-      setPeers(new Map(peersRef.current));
+      // Check if peer connection already exists (renegotiation) or create new one
+      let pc = peersRef.current.get(from);
+      const isRenegotiation = !!pc;
 
-      const stream = localStreamRef.current;
-      if (stream) {
-        stream.getTracks().forEach(track => {
-          pc.addTrack(track, stream);
-        });
+      if (!pc) {
+        // Create new peer connection
+        pc = new RTCPeerConnection(pcConfig);
+        peersRef.current.set(from, pc);
+        setPeers(new Map(peersRef.current));
+
+        const stream = localStreamRef.current;
+        if (stream) {
+          stream.getTracks().forEach(track => {
+            pc.addTrack(track, stream);
+          });
+        }
+
+        pc.ontrack = (event) => {
+          console.log('Received remote track from', from, event);
+          console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
+          if (event.streams && event.streams.length > 0) {
+            const stream = event.streams[0];
+            // Enable all remote tracks by default so we can see/hear them
+            stream.getTracks().forEach(track => {
+              track.enabled = true;
+            });
+            console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, id: t.id })));
+            setRemoteStreams(prev => {
+              const newMap = new Map(prev);
+              newMap.set(from, stream);
+              console.log('Updated remote streams:', Array.from(newMap.keys()));
+              return newMap;
+            });
+          }
+        };
+        
+        // Add connection state logging
+        pc.onconnectionstatechange = () => {
+          console.log('Peer connection state:', from, pc.connectionState);
+        };
+        
+        pc.oniceconnectionstatechange = () => {
+          console.log('ICE connection state:', from, pc.iceConnectionState);
+        };
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit('ice-candidate', {
+              sessionId,
+              candidate: event.candidate,
+              targetId: from
+            });
+          }
+        };
+      } else {
+        console.log('Handling renegotiation offer from:', from);
       }
 
-      pc.ontrack = (event) => {
-        console.log('Received remote track from', from, event);
-        console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
-        if (event.streams && event.streams.length > 0) {
-          const stream = event.streams[0];
-          // Enable all remote tracks by default so we can see/hear them
-          stream.getTracks().forEach(track => {
-            track.enabled = true;
-          });
-          console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, id: t.id })));
-          setRemoteStreams(prev => {
-            const newMap = new Map(prev);
-            newMap.set(from, stream);
-            console.log('Updated remote streams:', Array.from(newMap.keys()));
-            return newMap;
-          });
-        }
-      };
-      
-      // Add connection state logging
-      pc.onconnectionstatechange = () => {
-        console.log('Peer connection state:', from, pc.connectionState);
-      };
-      
-      pc.oniceconnectionstatechange = () => {
-        console.log('ICE connection state:', from, pc.iceConnectionState);
-      };
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit('ice-candidate', {
-            sessionId,
-            candidate: event.candidate,
-            targetId: from
-          });
-        }
-      };
-
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('answer', {
-        sessionId,
-        answer,
-        targetId: from
-      });
+      // Handle the offer (new connection or renegotiation)
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('answer', {
+          sessionId,
+          answer,
+          targetId: from
+        });
+        console.log(isRenegotiation ? 'Renegotiation answer sent' : 'Initial answer sent', 'to:', from);
+      } catch (error) {
+        console.error('Error handling offer:', error);
+      }
     });
 
     // Handle answer
