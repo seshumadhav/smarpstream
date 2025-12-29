@@ -980,7 +980,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         video.autoplay = true;
         video.playsInline = true;
         video.muted = false; // Unmute remote videos to hear audio
-        video.className = 'remote-video';
+        video.className = 'participant-video remote-participant-video';
         video.setAttribute('data-socket-id', socketId);
         
         // Ensure tracks are enabled
