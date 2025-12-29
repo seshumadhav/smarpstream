@@ -376,6 +376,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
   const userIdRef = React.useRef<string>(`user-${Date.now()}`);
   const userIdToSocketIdRef = React.useRef<Map<string, string>>(new Map());
   const lastSoundTimeRef = React.useRef<{ type: string; time: number }>({ type: '', time: 0 });
+  // Perfect Negotiation pattern: track if we're making an offer
+  const makingOfferRef = React.useRef<Map<string, boolean>>(new Map());
 
   useEffect(() => {
     const socket = io(API_URL);
@@ -477,22 +479,43 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       setPeers(new Map(peersRef.current));
 
       // Add local stream tracks to peer connection
-      // CRITICAL: Tracks MUST be enabled when added to peer connection for proper SDP negotiation
-      // We'll control mute/unmute via track.enabled, but tracks need to be enabled in the connection
+      // CRITICAL: Add tracks ENABLED - they must be in the SDP for negotiation
+      // We control mute/unmute via track.enabled property, but tracks must exist in connection
       const stream = localStreamRef.current;
       if (stream) {
         stream.getTracks().forEach(track => {
-          // Enable track temporarily for adding to peer connection
-          const originalEnabled = track.enabled;
-          track.enabled = true;
+          // Add track enabled - this ensures it's included in SDP
           pc.addTrack(track, stream);
-          // Keep track enabled in peer connection, but we'll control it via UI state
-          // The track.enabled will be toggled by the user, but it's already in the connection
-          console.log('Added track to peer connection:', track.kind, 'enabled in connection:', track.enabled, 'socketId:', socketId);
-          // Restore the original state for UI consistency
-          track.enabled = originalEnabled;
+          console.log('Added track to peer connection:', track.kind, 'track.enabled:', track.enabled, 'socketId:', socketId);
         });
       }
+      
+      // Perfect Negotiation: Handle negotiation needed
+      makingOfferRef.current.set(socketId, false);
+      pc.onnegotiationneeded = async () => {
+        const makingOffer = makingOfferRef.current.get(socketId);
+        if (makingOffer) {
+          console.log('Already making offer for:', socketId);
+          return;
+        }
+        
+        try {
+          makingOfferRef.current.set(socketId, true);
+          console.log('Negotiation needed for:', socketId);
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socket.emit('offer', {
+            sessionId,
+            offer,
+            targetId: socketId
+          });
+          console.log('Negotiation offer sent to:', socketId);
+        } catch (err) {
+          console.error('Error in negotiation needed:', err);
+        } finally {
+          makingOfferRef.current.set(socketId, false);
+        }
+      };
 
       // Handle remote stream
       pc.ontrack = (event) => {
@@ -592,8 +615,9 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         }
       };
 
-      // Create and send offer
+      // Create and send initial offer
       try {
+        makingOfferRef.current.set(socketId, true);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         socket.emit('offer', {
@@ -601,8 +625,11 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           offer,
           targetId: socketId
         });
+        console.log('Initial offer sent to:', socketId);
+        makingOfferRef.current.set(socketId, false);
       } catch (error) {
-        console.error('Error creating offer:', error);
+        console.error('Error creating initial offer:', error);
+        makingOfferRef.current.set(socketId, false);
       }
     });
 
@@ -623,15 +650,38 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const stream = localStreamRef.current;
         if (stream) {
           stream.getTracks().forEach(track => {
-            // Enable track temporarily for adding to peer connection
-            const originalEnabled = track.enabled;
-            track.enabled = true;
+            // Add track enabled - this ensures it's included in SDP
             pc!.addTrack(track, stream);
-            console.log('Added track to peer connection (offer handler):', track.kind, 'enabled in connection:', track.enabled, 'from:', from);
-            // Restore the original state for UI consistency
-            track.enabled = originalEnabled;
+            console.log('Added track to peer connection (offer handler):', track.kind, 'track.enabled:', track.enabled, 'from:', from);
           });
         }
+        
+        // Perfect Negotiation: Handle negotiation needed
+        makingOfferRef.current.set(from, false);
+        pc.onnegotiationneeded = async () => {
+          const makingOffer = makingOfferRef.current.get(from);
+          if (makingOffer) {
+            console.log('Already making offer for:', from);
+            return;
+          }
+          
+          try {
+            makingOfferRef.current.set(from, true);
+            console.log('Negotiation needed for:', from);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', {
+              sessionId,
+              offer,
+              targetId: from
+            });
+            console.log('Negotiation offer sent to:', from);
+          } catch (err) {
+            console.error('Error in negotiation needed:', err);
+          } finally {
+            makingOfferRef.current.set(from, false);
+          }
+        };
 
         const peerConnection = pc; // Capture for event handlers
         peerConnection.ontrack = (event) => {
@@ -789,18 +839,18 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       }
     });
 
-    // Handle answer
+    // Handle answer - Perfect Negotiation pattern
     socket.on('answer', async ({ answer, from }: { answer: RTCSessionDescriptionInit; from: string }) => {
       const pc = peersRef.current.get(from);
       if (pc) {
         try {
           console.log('Received answer from:', from, 'signaling state:', pc.signalingState);
-          // Only set remote description if we're in the right state
+          // Perfect Negotiation: Only set if we're expecting an answer
           if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'have-local-pranswer') {
             await pc.setRemoteDescription(new RTCSessionDescription(answer));
             console.log('Set remote description (answer) for:', from);
           } else if (pc.signalingState === 'stable') {
-            // Connection is already stable - this answer is late/duplicate, ignore it
+            // Connection already stable - this is a late/duplicate answer, safe to ignore
             console.log('Answer received but connection already stable - ignoring (this is OK):', from);
           } else {
             console.warn('Cannot set remote answer - unexpected signaling state:', pc.signalingState, 'from:', from);
