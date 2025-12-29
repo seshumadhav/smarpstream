@@ -812,57 +812,24 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
             });
           }
         };
-      } else {
-        console.log('Handling renegotiation offer from:', from);
-      }
-
-      // Handle the offer (new connection or renegotiation)
+      // Perfect Negotiation: Handle offer with collision detection
       if (pc) {
         try {
-          // For renegotiation, we need to handle it differently
-          if (isRenegotiation) {
-            // Check current signaling state - must be 'stable' to accept a new offer
-            console.log('Renegotiation - current signaling state:', pc.signalingState);
-            if (pc.signalingState === 'stable') {
-              // Connection is stable, we can set the remote description
-              await pc.setRemoteDescription(new RTCSessionDescription(offer));
-              const answer = await pc.createAnswer();
-              await pc.setLocalDescription(answer);
-              socket.emit('answer', {
-                sessionId,
-                answer,
-                targetId: from
-              });
-              console.log('Renegotiation answer sent to:', from);
-            } else if (pc.signalingState === 'have-local-offer') {
-              // We already have a local offer, set remote description will fail
-              // We need to wait or handle this differently
-              console.warn('Cannot handle renegotiation - already have local offer. Waiting...');
-              // Wait a bit and try again - capture pc in const for closure
-              const peerConn = pc;
-              setTimeout(async () => {
-                if (peerConn && peerConn.signalingState === 'stable') {
-                  try {
-                    await peerConn.setRemoteDescription(new RTCSessionDescription(offer));
-                    const answer = await peerConn.createAnswer();
-                    await peerConn.setLocalDescription(answer);
-                    socket.emit('answer', {
-                      sessionId,
-                      answer,
-                      targetId: from
-                    });
-                    console.log('Renegotiation answer sent (delayed) to:', from);
-                  } catch (err) {
-                    console.error('Error in delayed renegotiation:', err);
-                  }
-                }
-              }, 100);
-            } else {
-              console.warn('Cannot handle renegotiation offer - unexpected state:', pc.signalingState);
-            }
+          const makingOffer = makingOfferRef.current.get(from) || false;
+          const offerCollision = (offer.type === 'offer') && 
+                                 (makingOffer || pc.signalingState !== 'stable');
+          
+          if (offerCollision) {
+            console.log('Offer collision detected for:', from, '- rolling back');
+            await Promise.all([
+              pc.setLocalDescription({ type: 'rollback' }),
+              pc.setRemoteDescription(new RTCSessionDescription(offer))
+            ]);
           } else {
-            // New connection - normal flow
             await pc.setRemoteDescription(new RTCSessionDescription(offer));
+          }
+          
+          if (offer.type === 'offer') {
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             socket.emit('answer', {
@@ -870,7 +837,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               answer,
               targetId: from
             });
-            console.log('Initial answer sent to:', from);
+            console.log('Answer sent to:', from);
           }
         } catch (error) {
           console.error('Error handling offer:', error);
