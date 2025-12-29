@@ -1043,6 +1043,15 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     }
   };
 
+  // Helper function to get audio button color based on intensity
+  const getAudioButtonColor = (level: number): string => {
+    if (level === 0) return '#60a5fa'; // Light blue
+    if (level < 30) return '#3b82f6'; // Blue
+    if (level < 60) return '#2563eb'; // Medium blue
+    if (level < 80) return '#1d4ed8'; // Dark blue
+    return '#1e40af'; // Very dark blue (high intensity)
+  };
+
   const toggleAudio = () => {
     const stream = localStreamRef.current;
     if (stream) {
@@ -1213,11 +1222,24 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         </button>
         <button
           onClick={toggleAudio}
-          className={`control-btn-icon ${!isAudioEnabled ? 'disabled' : ''}`}
+          className={`control-btn-icon audio-btn ${!isAudioEnabled ? 'disabled' : ''}`}
           title={isAudioEnabled ? 'Turn off audio' : 'Turn on audio'}
         >
           {isAudioEnabled ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg 
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke={getAudioButtonColor(localAudioLevel)} 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              style={{
+                filter: localAudioLevel > 0 ? `drop-shadow(0 0 ${4 + (localAudioLevel / 100) * 4}px ${getAudioButtonColor(localAudioLevel)}80)` : 'none',
+                transition: 'stroke 0.2s ease, filter 0.2s ease'
+              }}
+            >
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
               <line x1="12" y1="19" x2="12" y2="23"></line>
