@@ -562,13 +562,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setPeers(new Map(peersRef.current));
 
         const stream = localStreamRef.current;
-        if (stream && pc) {
+        if (stream) {
           stream.getTracks().forEach(track => {
             pc!.addTrack(track, stream);
           });
         }
 
-        pc.ontrack = (event) => {
+        const peerConnection = pc; // Capture for event handlers
+        peerConnection.ontrack = (event) => {
           console.log('Received remote track from', from, event);
           console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
           if (event.streams && event.streams.length > 0) {
@@ -588,15 +589,15 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         };
         
         // Add connection state logging
-        pc.onconnectionstatechange = () => {
-          console.log('Peer connection state:', from, pc.connectionState);
+        peerConnection.onconnectionstatechange = () => {
+          console.log('Peer connection state:', from, peerConnection.connectionState);
         };
         
-        pc.oniceconnectionstatechange = () => {
-          console.log('ICE connection state:', from, pc.iceConnectionState);
+        peerConnection.oniceconnectionstatechange = () => {
+          console.log('ICE connection state:', from, peerConnection.iceConnectionState);
         };
 
-        pc.onicecandidate = (event) => {
+        peerConnection.onicecandidate = (event) => {
           if (event.candidate) {
             socket.emit('ice-candidate', {
               sessionId,
