@@ -539,7 +539,7 @@ body {
 
 .video-container-split {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -559,11 +559,11 @@ body {
 }
 
 .video-participant.local-participant {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .video-participant.remote-participant {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .video-participant-wrapper {

@@ -1126,7 +1126,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         </div>
       </div>
         
-        {/* Remote video - bottom half */}
+        {/* Remote video - right half */}
         <div className="video-participant remote-participant">
           <div className="video-participant-wrapper">
             <div className="remote-videos" ref={remoteVideosRef}></div>
