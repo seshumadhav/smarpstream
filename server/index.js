@@ -197,7 +197,7 @@ io.on('connection', (socket) => {
     
     // Notify others in the session
     socket.to(sessionId).emit('user-joined', { userId, socketId: socket.id });
-    // Also notify them to play join sound
+    // Also notify them to play join sound (only to others, not the person who just joined)
     socket.to(sessionId).emit('play-sound', { soundType: 'join' });
     
     // Send list of existing participants

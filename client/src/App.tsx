@@ -375,6 +375,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
   const animationFrameRef = React.useRef<number | null>(null);
   const userIdRef = React.useRef<string>(`user-${Date.now()}`);
   const userIdToSocketIdRef = React.useRef<Map<string, string>>(new Map());
+  const lastSoundTimeRef = React.useRef<{ type: string; time: number }>({ type: '', time: 0 });
 
   useEffect(() => {
     const socket = io(API_URL);
@@ -649,15 +650,58 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       // Handle the offer (new connection or renegotiation)
       if (pc) {
         try {
-          await pc.setRemoteDescription(new RTCSessionDescription(offer));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          socket.emit('answer', {
-            sessionId,
-            answer,
-            targetId: from
-          });
-          console.log(isRenegotiation ? 'Renegotiation answer sent' : 'Initial answer sent', 'to:', from);
+          // For renegotiation, we need to handle it differently
+          if (isRenegotiation) {
+            // Check current signaling state - must be 'stable' to accept a new offer
+            console.log('Renegotiation - current signaling state:', pc.signalingState);
+            if (pc.signalingState === 'stable') {
+              // Connection is stable, we can set the remote description
+              await pc.setRemoteDescription(new RTCSessionDescription(offer));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              socket.emit('answer', {
+                sessionId,
+                answer,
+                targetId: from
+              });
+              console.log('Renegotiation answer sent to:', from);
+            } else if (pc.signalingState === 'have-local-offer') {
+              // We already have a local offer, set remote description will fail
+              // We need to wait or handle this differently
+              console.warn('Cannot handle renegotiation - already have local offer. Waiting...');
+              // Wait a bit and try again
+              setTimeout(async () => {
+                if (pc.signalingState === 'stable') {
+                  try {
+                    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    socket.emit('answer', {
+                      sessionId,
+                      answer,
+                      targetId: from
+                    });
+                    console.log('Renegotiation answer sent (delayed) to:', from);
+                  } catch (err) {
+                    console.error('Error in delayed renegotiation:', err);
+                  }
+                }
+              }, 100);
+            } else {
+              console.warn('Cannot handle renegotiation offer - unexpected state:', pc.signalingState);
+            }
+          } else {
+            // New connection - normal flow
+            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            socket.emit('answer', {
+              sessionId,
+              answer,
+              targetId: from
+            });
+            console.log('Initial answer sent to:', from);
+          }
         } catch (error) {
           console.error('Error handling offer:', error);
         }
@@ -720,7 +764,17 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     
     // Handle remote sound notifications
     socket.on('play-sound', ({ soundType }: { soundType: 'join' | 'leave' }) => {
+      // Prevent duplicate sounds within 500ms
+      const now = Date.now();
+      if (lastSoundTimeRef.current.type === soundType && 
+          now - lastSoundTimeRef.current.time < 500) {
+        console.log('Ignoring duplicate sound:', soundType);
+        return;
+      }
+      
+      lastSoundTimeRef.current = { type: soundType, time: now };
       console.log('Received play-sound event:', soundType);
+      
       if (soundType === 'join') {
         playJoinSound();
       } else if (soundType === 'leave') {
