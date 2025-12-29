@@ -489,6 +489,10 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
         if (event.streams && event.streams.length > 0) {
           const stream = event.streams[0];
+          // Enable all remote tracks by default so we can see/hear them
+          stream.getTracks().forEach(track => {
+            track.enabled = true;
+          });
           console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, id: t.id })));
           setRemoteStreams(prev => {
             const newMap = new Map(prev);
@@ -502,10 +506,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       // Add connection state logging
       pc.onconnectionstatechange = () => {
         console.log('Peer connection state:', socketId, pc.connectionState);
+        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          console.error('Peer connection failed or disconnected:', socketId, pc.connectionState);
+        }
       };
       
       pc.oniceconnectionstatechange = () => {
         console.log('ICE connection state:', socketId, pc.iceConnectionState);
+        if (pc.iceConnectionState === 'failed') {
+          console.error('ICE connection failed for:', socketId);
+        }
+      };
+      
+      pc.onicegatheringstatechange = () => {
+        console.log('ICE gathering state:', socketId, pc.iceGatheringState);
       };
 
       // Handle ICE candidates
@@ -553,6 +567,10 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
         if (event.streams && event.streams.length > 0) {
           const stream = event.streams[0];
+          // Enable all remote tracks by default so we can see/hear them
+          stream.getTracks().forEach(track => {
+            track.enabled = true;
+          });
           console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, id: t.id })));
           setRemoteStreams(prev => {
             const newMap = new Map(prev);
@@ -672,8 +690,12 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       // Add new video elements for each remote stream
       remoteStreams.forEach((stream, socketId) => {
         // Check if video already exists for this socketId
-        const existingVideo = remoteVideosRef.current?.querySelector(`[data-socket-id="${socketId}"]`);
+        const existingVideo = remoteVideosRef.current?.querySelector(`[data-socket-id="${socketId}"]`) as HTMLVideoElement;
         if (existingVideo) {
+          // Update existing video srcObject if stream changed
+          if (existingVideo.srcObject !== stream) {
+            existingVideo.srcObject = stream;
+          }
           return; // Skip if already exists
         }
         
@@ -685,9 +707,23 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         video.className = 'remote-video';
         video.setAttribute('data-socket-id', socketId);
         
-        // Add event listeners for debugging
+        // Ensure tracks are enabled
+        stream.getTracks().forEach(track => {
+          track.enabled = true;
+        });
+        
+        // Add event listeners for debugging and playback
         video.onloadedmetadata = () => {
+          console.log('Remote video metadata loaded for', socketId);
           video.play().catch(err => console.error('Error playing remote video:', err));
+        };
+        
+        video.onplay = () => {
+          console.log('Remote video started playing for', socketId);
+        };
+        
+        video.onerror = (err) => {
+          console.error('Remote video error for', socketId, err);
         };
         
         remoteVideosRef.current?.appendChild(video);
