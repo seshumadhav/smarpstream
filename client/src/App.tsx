@@ -242,7 +242,6 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
 
   return (
     <div className="session-room">
-      <div className="deployment-info">Last deployed: 2025-12-29 8:30 PT</div>
       <ConfirmModal
         isOpen={showConfirmModal}
         onClose={handleCancel}
@@ -1031,11 +1030,12 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
 
   // Helper function to get audio button color based on intensity
   const getAudioButtonColor = (level: number): string => {
-    if (level === 0) return '#60a5fa'; // Light blue
-    if (level < 30) return '#3b82f6'; // Blue
-    if (level < 60) return '#2563eb'; // Medium blue
-    if (level < 80) return '#1d4ed8'; // Dark blue
-    return '#1e40af'; // Very dark blue (high intensity)
+    if (!isAudioEnabled || level === 0) return '#60a5fa'; // Light blue when muted or no audio
+    if (level < 20) return '#3b82f6'; // Blue
+    if (level < 40) return '#2563eb'; // Medium blue
+    if (level < 60) return '#1d4ed8'; // Dark blue
+    if (level < 80) return '#1e40af'; // Very dark blue
+    return '#1e3a8a'; // Darkest blue (highest intensity)
   };
 
   const toggleAudio = () => {
