@@ -94,7 +94,7 @@ function Home() {
       <div className="deployment-info">Last deployed: 2025-12-29 8:30 PT</div>
       <div className="page-header">
         <h1 className="page-heading">Smarp Stream</h1>
-        <p className="page-caption">Audio and video calls made easy. Create your call link and start connecting instantly.</p>
+        <p className="page-caption">Audio/Video and Text chatting made easy. Just click the 'Start Session' link and start connecting instantly</p>
       </div>
       
       <div className="home-content">
@@ -264,7 +264,7 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
             </svg>
           </button>
         </div>
-        <p className="page-caption">Audio and video calls made easy. Create your call link and start connecting instantly.</p>
+        <p className="page-caption">Audio/Video and Text chatting made easy. Just click the 'Start Session' link and start connecting instantly</p>
       </div>
       <div className="session-content">
         <VideoSection sessionId={sessionId} session={session} />

@@ -104,6 +104,11 @@ body {
   margin-bottom: 12px;
 }
 
+/* Home page - heading without wrapper */
+.page-header:not(:has(.header-content-wrapper)) .page-heading {
+  margin: 0 0 12px;
+}
+
 .back-button {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -145,6 +150,11 @@ body {
   line-height: 1.1;
   flex-shrink: 0;
   text-decoration: none;
+}
+
+.header-content-wrapper .page-heading {
+  margin: 0;
+  margin-bottom: 0;
 }
 
 .home-link-header {
