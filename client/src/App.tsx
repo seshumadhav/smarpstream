@@ -1365,6 +1365,10 @@ function ChatSection({ sessionId }: { sessionId: string }) {
     }
 
     setMessage('');
+    // Focus back on textarea after sending
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
