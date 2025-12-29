@@ -476,10 +476,17 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       setPeers(new Map(peersRef.current));
 
       // Add local stream tracks to peer connection
+      // CRITICAL: Add tracks ENABLED so they're properly included in SDP
+      // We'll disable them after adding, but they need to be enabled when added
       const stream = localStreamRef.current;
       if (stream) {
         stream.getTracks().forEach(track => {
+          // Temporarily enable track for adding to peer connection
+          const wasEnabled = track.enabled;
+          track.enabled = true;
           pc.addTrack(track, stream);
+          // Restore original state (disabled)
+          track.enabled = wasEnabled;
         });
       }
 
@@ -682,6 +689,16 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       }
     });
     
+    // Handle remote sound notifications
+    socket.on('play-sound', ({ soundType }: { soundType: 'join' | 'leave' }) => {
+      console.log('Received play-sound event:', soundType);
+      if (soundType === 'join') {
+        playJoinSound();
+      } else if (soundType === 'leave') {
+        playLeaveSound();
+      }
+    });
+    
     return () => {
       // Cleanup
       socket.emit('leave-session', { sessionId, userId });
@@ -762,14 +779,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsVideoEnabled(newState);
         console.log('Video track enabled:', newState);
         
-        // ALWAYS renegotiate when enabling/disabling video to ensure proper media flow
-        if (peersRef.current.size > 0) {
+        // When enabling, ensure track is in all peer connections and renegotiate
+        if (newState && peersRef.current.size > 0) {
           for (const [socketId, pc] of Array.from(peersRef.current.entries())) {
             try {
               // Check if track is in connection
               const sender = pc.getSenders().find(s => s.track === videoTrack);
               if (!sender) {
-                // Add track if not present
+                // Add track if not present (should already be there, but just in case)
                 pc.addTrack(videoTrack, stream);
                 console.log('Added video track to peer connection:', socketId);
               }
@@ -802,14 +819,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsAudioEnabled(newState);
         console.log('Audio track enabled:', newState);
         
-        // ALWAYS renegotiate when enabling/disabling audio to ensure proper media flow
-        if (peersRef.current.size > 0) {
+        // When enabling, ensure track is in all peer connections and renegotiate
+        if (newState && peersRef.current.size > 0) {
           for (const [socketId, pc] of Array.from(peersRef.current.entries())) {
             try {
               // Check if track is in connection
               const sender = pc.getSenders().find(s => s.track === audioTrack);
               if (!sender) {
-                // Add track if not present
+                // Add track if not present (should already be there, but just in case)
                 pc.addTrack(audioTrack, stream);
                 console.log('Added audio track to peer connection:', socketId);
               }
