@@ -574,21 +574,37 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
 
         const peerConnection = pc; // Capture for event handlers
         peerConnection.ontrack = (event) => {
-          console.log('Received remote track from', from, event);
-          console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
+          console.log('=== RECEIVED REMOTE TRACK (OFFER HANDLER) ===');
+          console.log('From socketId:', from);
+          console.log('Track kind:', event.track.kind);
+          console.log('Track enabled:', event.track.enabled);
+          console.log('Track ID:', event.track.id);
+          console.log('Streams:', event.streams);
+          
           if (event.streams && event.streams.length > 0) {
             const stream = event.streams[0];
+            console.log('Stream ID:', stream.id);
+            console.log('Stream tracks:', stream.getTracks().map(t => ({ 
+              kind: t.kind, 
+              enabled: t.enabled, 
+              id: t.id,
+              readyState: t.readyState
+            })));
+            
             // Enable all remote tracks by default so we can see/hear them
             stream.getTracks().forEach(track => {
               track.enabled = true;
+              console.log('Enabled remote track:', track.kind, track.id);
             });
-            console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, id: t.id })));
+            
             setRemoteStreams(prev => {
               const newMap = new Map(prev);
               newMap.set(from, stream);
-              console.log('Updated remote streams:', Array.from(newMap.keys()));
+              console.log('Updated remote streams map. Keys:', Array.from(newMap.keys()));
               return newMap;
             });
+          } else {
+            console.warn('No streams in ontrack event (offer handler)!');
           }
         };
         
