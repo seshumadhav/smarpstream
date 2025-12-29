@@ -197,6 +197,8 @@ io.on('connection', (socket) => {
     
     // Notify others in the session
     socket.to(sessionId).emit('user-joined', { userId, socketId: socket.id });
+    // Also notify them to play join sound
+    socket.to(sessionId).emit('play-sound', { soundType: 'join' });
     
     // Send list of existing participants
     socket.emit('session-joined', {
@@ -246,6 +248,8 @@ io.on('connection', (socket) => {
     if (session) {
       session.participants = session.participants.filter(p => p !== userId);
       socket.to(sessionId).emit('user-left', { userId, socketId: socket.id });
+      // Notify others to play leave sound
+      socket.to(sessionId).emit('play-sound', { soundType: 'leave' });
     }
   });
   

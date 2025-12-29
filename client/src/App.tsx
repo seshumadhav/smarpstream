@@ -468,11 +468,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         userIdToSocketIdRef.current.set(joinedUserId, socketId);
       }
       
-      // Play join sound locally
+      // Play join sound locally (when someone else joins)
       playJoinSound();
-      
-      // Notify others to play join sound
-      socket.emit('play-sound', { sessionId, soundType: 'join' });
 
       const pc = new RTCPeerConnection(pcConfig);
       peersRef.current.set(socketId, pc);
@@ -745,16 +742,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const newState = !isVideoEnabled;
         videoTrack.enabled = newState;
         setIsVideoEnabled(newState);
+        console.log('Video track enabled:', newState);
         
-        // When enabling video, ensure it's properly added to all peer connections
+        // When enabling video, the track should already be in the peer connection
+        // Just enabling it should make it start sending
+        // But we need to ensure the connection is established
         if (newState) {
           peersRef.current.forEach((pc, socketId) => {
-            // Check if track is already in the connection
             const sender = pc.getSenders().find(s => s.track === videoTrack);
-            if (!sender) {
-              // Add track if not already added
+            if (sender) {
+              console.log('Video track sender found, track should be sending now');
+            } else {
+              console.warn('Video track sender not found, adding track');
               pc.addTrack(videoTrack, stream);
-              // Create new offer to renegotiate
+              // Renegotiate if track wasn't in connection
               pc.createOffer().then(offer => {
                 pc.setLocalDescription(offer);
                 socketRef.current?.emit('offer', {
@@ -778,16 +779,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const newState = !isAudioEnabled;
         audioTrack.enabled = newState;
         setIsAudioEnabled(newState);
+        console.log('Audio track enabled:', newState);
         
-        // When enabling audio, ensure it's properly added to all peer connections
+        // When enabling audio, the track should already be in the peer connection
+        // Just enabling it should make it start sending
+        // But we need to ensure the connection is established
         if (newState) {
           peersRef.current.forEach((pc, socketId) => {
-            // Check if track is already in the connection
             const sender = pc.getSenders().find(s => s.track === audioTrack);
-            if (!sender) {
-              // Add track if not already added
+            if (sender) {
+              console.log('Audio track sender found, track should be sending now');
+            } else {
+              console.warn('Audio track sender not found, adding track');
               pc.addTrack(audioTrack, stream);
-              // Create new offer to renegotiate
+              // Renegotiate if track wasn't in connection
               pc.createOffer().then(offer => {
                 pc.setLocalDescription(offer);
                 socketRef.current?.emit('offer', {
