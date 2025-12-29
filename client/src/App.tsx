@@ -250,9 +250,19 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
         message="Are you sure you want to disconnect from the call and return to home?"
       />
       <div className="page-header">
-        <h1 className="page-heading">
-          <span className="home-link-header" onClick={handleHomeClick}>Smarp Stream</span>
-        </h1>
+        <div className="header-left">
+          <button 
+            onClick={handleHomeClick}
+            className="back-button"
+            title="Go back to home"
+            type="button"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5"></path>
+              <path d="M12 19l-7-7 7-7"></path>
+            </svg>
+          </button>
+        </div>
         <p className="page-caption">Audio and video calls made easy. Create your call link and start connecting instantly.</p>
       </div>
       <div className="session-content">
