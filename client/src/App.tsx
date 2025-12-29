@@ -562,9 +562,9 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setPeers(new Map(peersRef.current));
 
         const stream = localStreamRef.current;
-        if (stream) {
+        if (stream && pc) {
           stream.getTracks().forEach(track => {
-            pc.addTrack(track, stream);
+            pc!.addTrack(track, stream);
           });
         }
 
@@ -610,18 +610,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       }
 
       // Handle the offer (new connection or renegotiation)
-      try {
-        await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit('answer', {
-          sessionId,
-          answer,
-          targetId: from
-        });
-        console.log(isRenegotiation ? 'Renegotiation answer sent' : 'Initial answer sent', 'to:', from);
-      } catch (error) {
-        console.error('Error handling offer:', error);
+      if (pc) {
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socket.emit('answer', {
+            sessionId,
+            answer,
+            targetId: from
+          });
+          console.log(isRenegotiation ? 'Renegotiation answer sent' : 'Initial answer sent', 'to:', from);
+        } catch (error) {
+          console.error('Error handling offer:', error);
+        }
       }
     });
 
