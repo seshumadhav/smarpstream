@@ -337,6 +337,24 @@ const playLeaveSound = () => {
   setTimeout(() => playSound(400, 0.15, 'square'), 80);
 };
 
+// Audio Level Indicator Component
+function AudioLevelIndicator({ level, isLocal }: { level: number; isLocal: boolean }) {
+  // Convert level (0-100) to bars (0-5)
+  const bars = Math.min(5, Math.ceil((level / 100) * 5));
+  
+  return (
+    <div className={`audio-level-indicator ${isLocal ? 'local' : 'remote'}`}>
+      {[1, 2, 3, 4, 5].map((barNum) => (
+        <div
+          key={barNum}
+          className={`audio-bar ${barNum <= bars ? 'active' : ''}`}
+          style={{ height: `${barNum * 4 + 2}px` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // Video Section
 function VideoSection({ sessionId, session }: { sessionId: string; session: any }) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -345,12 +363,18 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [copied, setCopied] = useState(false);
   const [peers, setPeers] = useState<Map<string, RTCPeerConnection>>(new Map());
+  const [localAudioLevel, setLocalAudioLevel] = useState(0);
+  const [remoteAudioLevels, setRemoteAudioLevels] = useState<Map<string, number>>(new Map());
   const peersRef = React.useRef<Map<string, RTCPeerConnection>>(new Map());
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const remoteVideosRef = React.useRef<HTMLDivElement>(null);
   const socketRef = React.useRef<any>(null);
   const localStreamRef = React.useRef<MediaStream | null>(null);
+  const audioContextRef = React.useRef<AudioContext | null>(null);
+  const analyserRef = React.useRef<AnalyserNode | null>(null);
+  const animationFrameRef = React.useRef<number | null>(null);
   const userIdRef = React.useRef<string>(`user-${Date.now()}`);
+  const userIdToSocketIdRef = React.useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     const socket = io(API_URL);
@@ -386,6 +410,44 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        
+        // Setup audio level monitoring
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          audioContextRef.current = audioContext;
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.8;
+          analyserRef.current = analyser;
+          
+          const source = audioContext.createMediaStreamSource(stream);
+          source.connect(analyser);
+          
+          // Start monitoring audio levels
+          const monitorAudioLevel = () => {
+            if (!analyserRef.current) return;
+            
+            const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+            analyserRef.current.getByteFrequencyData(dataArray);
+            
+            // Calculate average volume
+            const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+            const level = Math.min(100, (average / 255) * 100);
+            
+            setLocalAudioLevel(level);
+            
+            // Send audio level to other users
+            if (socketRef.current) {
+              socketRef.current.emit('audio-level', { sessionId, level, userId });
+            }
+            
+            animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
+          };
+          
+          monitorAudioLevel();
+        } catch (error) {
+          console.error('Error setting up audio level monitoring:', error);
+        }
       } catch (error) {
         console.error('Error accessing media devices:', error);
         alert('Failed to access camera/microphone. Please check permissions.');
@@ -398,8 +460,13 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     socket.emit('join-session', { sessionId, userId });
 
     // Handle new user joining
-    socket.on('user-joined', async ({ socketId }: { socketId: string }) => {
+    socket.on('user-joined', async ({ socketId, userId: joinedUserId }: { socketId: string; userId?: string }) => {
       if (socketId === socket.id) return;
+      
+      // Store mapping if userId is provided
+      if (joinedUserId) {
+        userIdToSocketIdRef.current.set(joinedUserId, socketId);
+      }
       
       // Play join sound
       playJoinSound();
@@ -562,12 +629,32 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       }
     });
 
+    // Handle remote audio levels
+    socket.on('audio-level', ({ userId: remoteUserId, level }: { userId: string; level: number }) => {
+      if (remoteUserId !== userId) {
+        // Map userId to socketId for display
+        const socketIdForUser = userIdToSocketIdRef.current.get(remoteUserId);
+        const key = socketIdForUser || remoteUserId;
+        setRemoteAudioLevels(prev => {
+          const newMap = new Map(prev);
+          newMap.set(key, level);
+          return newMap;
+        });
+      }
+    });
+    
     return () => {
       // Cleanup
       socket.emit('leave-session', { sessionId, userId });
       socket.disconnect();
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
       peersRef.current.forEach(pc => pc.close());
       peersRef.current.clear();
@@ -584,6 +671,12 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       
       // Add new video elements for each remote stream
       remoteStreams.forEach((stream, socketId) => {
+        // Check if video already exists for this socketId
+        const existingVideo = remoteVideosRef.current?.querySelector(`[data-socket-id="${socketId}"]`);
+        if (existingVideo) {
+          return; // Skip if already exists
+        }
+        
         const video = document.createElement('video');
         video.srcObject = stream;
         video.autoplay = true;
@@ -654,6 +747,15 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       <div className="video-container">
         <div className="remote-video-container">
           <div className="remote-videos" ref={remoteVideosRef}></div>
+          {/* Remote audio level indicators - show for each remote stream */}
+          {Array.from(remoteStreams.keys()).map((socketId) => {
+            const audioLevel = remoteAudioLevels.get(socketId) || 0;
+            return (
+              <div key={socketId} className="remote-audio-indicator-wrapper">
+                <AudioLevelIndicator level={audioLevel} isLocal={false} />
+              </div>
+            );
+          })}
         </div>
         <div className="local-video-container">
           <div className="local-video-wrapper">
@@ -664,6 +766,10 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               muted
               className="local-video"
             />
+            {/* Local audio level indicator */}
+            <div className="local-audio-indicator-wrapper">
+              <AudioLevelIndicator level={localAudioLevel} isLocal={true} />
+            </div>
           </div>
         </div>
       </div>

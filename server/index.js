@@ -229,6 +229,11 @@ io.on('connection', (socket) => {
     });
   });
   
+  // Audio level updates
+  socket.on('audio-level', ({ sessionId, level, userId }) => {
+    socket.to(sessionId).emit('audio-level', { userId, level });
+  });
+  
   // Leave session
   socket.on('leave-session', ({ sessionId, userId }) => {
     socket.leave(sessionId);
