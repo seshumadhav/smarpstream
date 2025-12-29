@@ -658,7 +658,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         
         // Perfect Negotiation: Handle negotiation needed
         makingOfferRef.current.set(from, false);
-        pc.onnegotiationneeded = async () => {
+        const peerConnForNegotiation = pc; // Capture for closure
+        peerConnForNegotiation.onnegotiationneeded = async () => {
           const makingOffer = makingOfferRef.current.get(from);
           if (makingOffer) {
             console.log('Already making offer for:', from);
@@ -668,8 +669,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           try {
             makingOfferRef.current.set(from, true);
             console.log('Negotiation needed for:', from);
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
+            const offer = await peerConnForNegotiation.createOffer();
+            await peerConnForNegotiation.setLocalDescription(offer);
             socket.emit('offer', {
               sessionId,
               offer,
