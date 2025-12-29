@@ -32,23 +32,25 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-// Get deployment timestamp - use build time or current time for dev
-const getDeploymentTime = (): string => {
-  // In production, try to get from build timestamp
-  // For dev/local, use current time
-  if (process.env.REACT_APP_BUILD_TIME) {
-    const buildTime = new Date(process.env.REACT_APP_BUILD_TIME);
-    return buildTime.toLocaleString('en-US', { 
-      timeZone: 'America/Los_Angeles',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).replace(',', '') + ' PT';
+// Format timestamp to PT timezone
+const formatDeploymentTime = (timestamp: string): string => {
+  try {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleString('en-US', { 
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace(',', '') + ' PT';
+    }
+  } catch (e) {
+    console.error('Error parsing timestamp:', e);
   }
-  // Fallback: use current time for local dev
+  // Fallback
   const now = new Date();
   return now.toLocaleString('en-US', { 
     timeZone: 'America/Los_Angeles',
@@ -66,6 +68,40 @@ function Home() {
   const [loading, setLoading] = useState(false);
   const [sessionLink, setSessionLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [deploymentTime, setDeploymentTime] = useState<string>('Loading...');
+  
+  // Fetch deployment time from server (for production) or use build time
+  useEffect(() => {
+    const fetchDeploymentTime = async () => {
+      // In production, fetch from server
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        try {
+          const response = await axios.get(`${API_URL}/api/deployment-time`);
+          if (response.data && response.data.deploymentTime) {
+            setDeploymentTime(formatDeploymentTime(response.data.deploymentTime));
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to fetch deployment time:', error);
+        }
+      }
+      
+      // Fallback: use build time if available, otherwise current time
+      if (process.env.REACT_APP_BUILD_TIME) {
+        setDeploymentTime(formatDeploymentTime(process.env.REACT_APP_BUILD_TIME));
+      } else {
+        // Local dev: update every minute
+        const updateTime = () => {
+          setDeploymentTime(formatDeploymentTime(new Date().toISOString()));
+        };
+        updateTime();
+        const interval = setInterval(updateTime, 60000); // Update every minute
+        return () => clearInterval(interval);
+      }
+    };
+    
+    fetchDeploymentTime();
+  }, []);
 
   const createSession = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +156,7 @@ function Home() {
 
   return (
     <div className="page">
-      <div className="deployment-info">Last deployed: {getDeploymentTime()}</div>
+      <div className="deployment-info">Last deployed: {deploymentTime}</div>
       <div className="page-header">
         <h1 className="page-heading">Smarp Stream</h1>
         <p className="page-caption">Audio/Video and Text chatting made easy. Just click the 'Start Session' link and start connecting instantly</p>

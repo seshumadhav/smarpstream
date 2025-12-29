@@ -28,6 +28,16 @@ const allNames = [
   ...ukMovies
 ];
 
+// Get deployment timestamp - use environment variable or file modification time
+function getDeploymentTime() {
+  // Check for environment variable set during deployment
+  if (process.env.DEPLOYMENT_TIME) {
+    return process.env.DEPLOYMENT_TIME;
+  }
+  // Fallback: use current time (for local dev)
+  return new Date().toISOString();
+}
+
 // Generate session ID from all available names
 function generateSessionId() {
   if (allNames.length === 0) {
@@ -92,6 +102,10 @@ const upload = multer({
 const sessions = new Map();
 
 // Create a new session
+app.get('/api/deployment-time', (req, res) => {
+  res.json({ deploymentTime: getDeploymentTime() });
+});
+
 app.post('/api/sessions', (req, res) => {
   try {
     const { type } = req.body;
