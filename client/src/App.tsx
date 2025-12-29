@@ -1082,61 +1082,71 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
 
   return (
     <div className="video-section">
-      <div className="video-container">
-        <div className="remote-video-container">
-          <div className="remote-videos" ref={remoteVideosRef}></div>
-          {/* Remote audio level indicators - show for each remote stream */}
-          {Array.from(remoteStreams.keys()).map((socketId) => {
-            const audioLevel = remoteAudioLevels.get(socketId) || 0;
-            return (
-              <div key={socketId} className="remote-audio-indicator-wrapper">
-                <AudioLevelIndicator level={audioLevel} isLocal={false} />
-              </div>
-            );
-          })}
-        </div>
-        <div className="local-video-container">
-          <div className="local-video-wrapper">
+      <div className="video-container-split">
+        {/* Local video - top half */}
+        <div className="video-participant local-participant">
+          <div className="video-participant-wrapper">
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className="local-video"
+              className="participant-video"
             />
-            {/* Local audio level indicator */}
-            <div className="local-audio-indicator-wrapper">
+            <div className="participant-label">You</div>
+            <div className="audio-indicator-wrapper">
               <AudioLevelIndicator level={localAudioLevel} isLocal={true} />
             </div>
           </div>
         </div>
+        
+        {/* Remote video - bottom half */}
+        <div className="video-participant remote-participant">
+          <div className="video-participant-wrapper">
+            <div className="remote-videos" ref={remoteVideosRef}></div>
+            {Array.from(remoteStreams.keys()).map((socketId) => {
+              const audioLevel = remoteAudioLevels.get(socketId) || 0;
+              return (
+                <div key={socketId} className="audio-indicator-wrapper remote">
+                  <AudioLevelIndicator level={audioLevel} isLocal={false} />
+                </div>
+              );
+            })}
+            {remoteStreams.size === 0 && (
+              <div className="no-participant-message">Waiting for participant...</div>
+            )}
+          </div>
+        </div>
       </div>
+      
       <div className="video-controls">
         <button
           onClick={copyLink}
-          className="copy-link-control-btn"
+          className="control-btn-icon"
+          title="Copy link"
         >
-          {copied ? '✓ Copied!' : '📋 Copy Link'}
+          <span className="icon">🔗</span>
         </button>
         <button
           onClick={toggleVideo}
-          className={`control-btn ${!isVideoEnabled ? 'disabled' : ''}`}
+          className={`control-btn-icon ${!isVideoEnabled ? 'disabled' : ''}`}
           title={isVideoEnabled ? 'Turn off video' : 'Turn on video'}
         >
-          {isVideoEnabled ? '🎥' : '🎥🚫'}
+          <span className="icon">{isVideoEnabled ? '📹' : '📹❌'}</span>
         </button>
         <button
           onClick={toggleAudio}
-          className={`control-btn ${!isAudioEnabled ? 'disabled' : ''}`}
+          className={`control-btn-icon ${!isAudioEnabled ? 'disabled' : ''}`}
           title={isAudioEnabled ? 'Turn off audio' : 'Turn on audio'}
         >
-          {isAudioEnabled ? '🎤' : '🎤🚫'}
+          <span className="icon">{isAudioEnabled ? '🎙️' : '🎙️❌'}</span>
         </button>
         <button
           onClick={() => window.location.href = '/'}
-          className="leave-btn-control"
+          className="control-btn-icon leave-btn"
+          title="Disconnect"
         >
-          Leave
+          <span className="icon">📞❌</span>
         </button>
       </div>
     </div>
