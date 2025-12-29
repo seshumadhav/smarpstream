@@ -1021,14 +1021,23 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsVideoEnabled(newState);
         console.log('Video track enabled:', newState, 'Track ID:', videoTrack.id);
         
-        // Tracks should already be in peer connections from initial setup
-        // Just verify they exist (don't add again - that would cause issues)
+        // Update all peer connections - ensure tracks are in senders
         peersRef.current.forEach((pc, socketId) => {
-          const sender = pc.getSenders().find(s => s.track === videoTrack);
-          if (sender) {
-            console.log('Video track sender found for:', socketId, 'track enabled:', videoTrack.enabled);
+          const sender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender && sender.track) {
+            // Track is already in sender, just update enabled state
+            sender.track.enabled = newState;
+            console.log('Video track sender found for:', socketId, 'track enabled:', newState);
           } else {
-            console.warn('Video track sender NOT found for:', socketId, '- this should not happen');
+            // Sender not found - this can happen if peer connection was created before tracks were added
+            // Try to add the track now
+            console.warn('Video track sender NOT found for:', socketId, '- adding track now');
+            try {
+              pc.addTrack(videoTrack, stream);
+              console.log('Added video track to peer connection:', socketId);
+            } catch (err) {
+              console.error('Failed to add video track to peer connection:', socketId, err);
+            }
           }
         });
       }
@@ -1045,14 +1054,23 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsAudioEnabled(newState);
         console.log('Audio track enabled:', newState, 'Track ID:', audioTrack.id);
         
-        // Tracks should already be in peer connections from initial setup
-        // Just verify they exist (don't add again - that would cause issues)
+        // Update all peer connections - ensure tracks are in senders
         peersRef.current.forEach((pc, socketId) => {
-          const sender = pc.getSenders().find(s => s.track === audioTrack);
-          if (sender) {
-            console.log('Audio track sender found for:', socketId, 'track enabled:', audioTrack.enabled);
+          const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+          if (sender && sender.track) {
+            // Track is already in sender, just update enabled state
+            sender.track.enabled = newState;
+            console.log('Audio track sender found for:', socketId, 'track enabled:', newState);
           } else {
-            console.warn('Audio track sender NOT found for:', socketId, '- this should not happen');
+            // Sender not found - this can happen if peer connection was created before tracks were added
+            // Try to add the track now
+            console.warn('Audio track sender NOT found for:', socketId, '- adding track now');
+            try {
+              pc.addTrack(audioTrack, stream);
+              console.log('Added audio track to peer connection:', socketId);
+            } catch (err) {
+              console.error('Failed to add audio track to peer connection:', socketId, err);
+            }
           }
         });
       }
