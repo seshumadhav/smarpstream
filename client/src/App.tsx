@@ -302,6 +302,41 @@ function SessionHeader({ session }: { session: any }) {
   );
 }
 
+// Helper function to play sound using Web Audio API
+const playSound = (frequency: number, duration: number, type: 'sine' | 'square' = 'sine') => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+  } catch (error) {
+    console.error('Error playing sound:', error);
+  }
+};
+
+// Play join sound (higher pitch, ascending)
+const playJoinSound = () => {
+  playSound(800, 0.1, 'sine');
+  setTimeout(() => playSound(1000, 0.1, 'sine'), 50);
+};
+
+// Play leave sound (lower pitch, descending)
+const playLeaveSound = () => {
+  playSound(600, 0.15, 'square');
+  setTimeout(() => playSound(400, 0.15, 'square'), 80);
+};
+
 // Video Section
 function VideoSection({ sessionId, session }: { sessionId: string; session: any }) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -337,14 +372,15 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           audio: true
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        // Enable audio by default, disable video by default
+        // Disable both audio and video by default - user must explicitly enable
         stream.getVideoTracks().forEach(track => {
           track.enabled = false;
         });
         stream.getAudioTracks().forEach(track => {
-          track.enabled = true; // Enable audio by default
+          track.enabled = false; // Mute audio by default
         });
-        setIsAudioEnabled(true); // Set audio state to enabled
+        setIsAudioEnabled(false); // Set audio state to disabled
+        setIsVideoEnabled(false); // Set video state to disabled
         localStreamRef.current = stream;
         setLocalStream(stream);
         if (videoRef.current) {
@@ -364,6 +400,9 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     // Handle new user joining
     socket.on('user-joined', async ({ socketId }: { socketId: string }) => {
       if (socketId === socket.id) return;
+      
+      // Play join sound
+      playJoinSound();
 
       const pc = new RTCPeerConnection(pcConfig);
       peersRef.current.set(socketId, pc);
@@ -379,15 +418,27 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
 
       // Handle remote stream
       pc.ontrack = (event) => {
-        console.log('Received remote track from', socketId, event.streams);
+        console.log('Received remote track from', socketId, event);
+        console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
         if (event.streams && event.streams.length > 0) {
+          const stream = event.streams[0];
+          console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, id: t.id })));
           setRemoteStreams(prev => {
             const newMap = new Map(prev);
-            newMap.set(socketId, event.streams[0]);
+            newMap.set(socketId, stream);
             console.log('Updated remote streams:', Array.from(newMap.keys()));
             return newMap;
           });
         }
+      };
+      
+      // Add connection state logging
+      pc.onconnectionstatechange = () => {
+        console.log('Peer connection state:', socketId, pc.connectionState);
+      };
+      
+      pc.oniceconnectionstatechange = () => {
+        console.log('ICE connection state:', socketId, pc.iceConnectionState);
       };
 
       // Handle ICE candidates
@@ -431,15 +482,27 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       }
 
       pc.ontrack = (event) => {
-        console.log('Received remote track from', from, event.streams);
+        console.log('Received remote track from', from, event);
+        console.log('Track kind:', event.track.kind, 'enabled:', event.track.enabled);
         if (event.streams && event.streams.length > 0) {
+          const stream = event.streams[0];
+          console.log('Stream tracks:', stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, id: t.id })));
           setRemoteStreams(prev => {
             const newMap = new Map(prev);
-            newMap.set(from, event.streams[0]);
+            newMap.set(from, stream);
             console.log('Updated remote streams:', Array.from(newMap.keys()));
             return newMap;
           });
         }
+      };
+      
+      // Add connection state logging
+      pc.onconnectionstatechange = () => {
+        console.log('Peer connection state:', from, pc.connectionState);
+      };
+      
+      pc.oniceconnectionstatechange = () => {
+        console.log('ICE connection state:', from, pc.iceConnectionState);
       };
 
       pc.onicecandidate = (event) => {
@@ -481,6 +544,10 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     // Handle user left
     socket.on('user-left', ({ userId, socketId: leftSocketId }: { userId: string; socketId?: string }) => {
       console.log('User left:', userId, 'socketId:', leftSocketId);
+      
+      // Play leave sound
+      playLeaveSound();
+      
       const socketIdToRemove = leftSocketId || userId;
       setRemoteStreams(prev => {
         const newMap = new Map(prev);
