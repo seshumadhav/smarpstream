@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon server/index.js",
     "client": "cd client && npm start",
-    "build": "cd client && npm run build",
+    "build": "cd client && REACT_APP_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) npm run build",
     "install-all": "npm install && cd client && npm install"
   },
   "keywords": ["webrtc", "video-chat", "audio-chat"],

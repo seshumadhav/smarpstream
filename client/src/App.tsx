@@ -32,6 +32,35 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
+// Get deployment timestamp - use build time or current time for dev
+const getDeploymentTime = (): string => {
+  // In production, try to get from build timestamp
+  // For dev/local, use current time
+  if (process.env.REACT_APP_BUILD_TIME) {
+    const buildTime = new Date(process.env.REACT_APP_BUILD_TIME);
+    return buildTime.toLocaleString('en-US', { 
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace(',', '') + ' PT';
+  }
+  // Fallback: use current time for local dev
+  const now = new Date();
+  return now.toLocaleString('en-US', { 
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).replace(',', '') + ' PT';
+};
+
 // Home page component
 function Home() {
   const [loading, setLoading] = useState(false);
@@ -91,7 +120,7 @@ function Home() {
 
   return (
     <div className="page">
-      <div className="deployment-info">Last deployed: 2025-12-29 8:30 PT</div>
+      <div className="deployment-info">Last deployed: {getDeploymentTime()}</div>
       <div className="page-header">
         <h1 className="page-heading">Smarp Stream</h1>
         <p className="page-caption">Audio/Video and Text chatting made easy. Just click the 'Start Session' link and start connecting instantly</p>
@@ -441,7 +470,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
             
             // Calculate average volume
             const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-            const level = Math.min(100, (average / 255) * 100);
+            // Scale more aggressively to make changes more visible
+            const level = Math.min(100, (average / 255) * 100 * 1.5); // Multiply by 1.5 for better sensitivity
             
             setLocalAudioLevel(level);
             
@@ -453,6 +483,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
             animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
           };
           
+          // Start monitoring immediately - it works even when track is disabled
           monitorAudioLevel();
         } catch (error) {
           console.error('Error setting up audio level monitoring:', error);
