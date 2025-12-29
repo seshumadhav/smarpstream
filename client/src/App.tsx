@@ -91,6 +91,7 @@ function Home() {
 
   return (
     <div className="page">
+      <div className="deployment-info">Last deployed: 2025-12-29 8:30 PT</div>
       <div className="page-header">
         <h1 className="page-heading">Smarp Stream</h1>
         <p className="page-caption">Audio and video calls made easy. Create your call link and start connecting instantly.</p>

@@ -28,6 +28,18 @@ html, body {
 
 body {
   display: block;
+  position: relative;
+}
+
+.deployment-info {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* Page Container */
