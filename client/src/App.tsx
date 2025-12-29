@@ -533,15 +533,47 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       // Add connection state logging
       pc.onconnectionstatechange = () => {
         console.log('Peer connection state:', socketId, pc.connectionState);
-        if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-          console.error('Peer connection failed or disconnected:', socketId, pc.connectionState);
+        if (pc.connectionState === 'failed') {
+          console.error('Peer connection failed for:', socketId, '- attempting to restart ICE');
+          // Try to recover by restarting ICE
+          (async () => {
+            try {
+              const offer = await pc.createOffer({ iceRestart: true });
+              await pc.setLocalDescription(offer);
+              socket.emit('offer', {
+                sessionId,
+                offer,
+                targetId: socketId
+              });
+              console.log('ICE restart offer sent for:', socketId);
+            } catch (err) {
+              console.error('Error restarting ICE:', err);
+            }
+          })();
+        } else if (pc.connectionState === 'disconnected') {
+          console.error('Peer connection disconnected:', socketId);
         }
       };
       
       pc.oniceconnectionstatechange = () => {
         console.log('ICE connection state:', socketId, pc.iceConnectionState);
         if (pc.iceConnectionState === 'failed') {
-          console.error('ICE connection failed for:', socketId);
+          console.error('ICE connection failed for:', socketId, '- attempting to restart ICE');
+          // Try to recover by restarting ICE
+          (async () => {
+            try {
+              const offer = await pc.createOffer({ iceRestart: true });
+              await pc.setLocalDescription(offer);
+              socket.emit('offer', {
+                sessionId,
+                offer,
+                targetId: socketId
+              });
+              console.log('ICE restart offer sent (ICE failed) for:', socketId);
+            } catch (err) {
+              console.error('Error restarting ICE (ICE failed):', err);
+            }
+          })();
         }
       };
       
@@ -643,18 +675,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           if (peerConnection.connectionState === 'failed') {
             console.error('Peer connection failed for:', from, '- attempting to restart ICE');
             // Try to recover by restarting ICE
-            try {
-              const offer = await peerConnection.createOffer({ iceRestart: true });
-              await peerConnection.setLocalDescription(offer);
-              socket.emit('offer', {
-                sessionId,
-                offer,
-                targetId: from
-              });
-              console.log('ICE restart offer sent for:', from);
-            } catch (err) {
-              console.error('Error restarting ICE:', err);
-            }
+            (async () => {
+              try {
+                const offer = await peerConnection.createOffer({ iceRestart: true });
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('offer', {
+                  sessionId,
+                  offer,
+                  targetId: from
+                });
+                console.log('ICE restart offer sent for:', from);
+              } catch (err) {
+                console.error('Error restarting ICE:', err);
+              }
+            })();
           }
         };
         
@@ -663,18 +697,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           if (peerConnection.iceConnectionState === 'failed') {
             console.error('ICE connection failed for:', from, '- attempting to restart ICE');
             // Try to recover by restarting ICE
-            try {
-              const offer = await peerConnection.createOffer({ iceRestart: true });
-              await peerConnection.setLocalDescription(offer);
-              socket.emit('offer', {
-                sessionId,
-                offer,
-                targetId: from
-              });
-              console.log('ICE restart offer sent (ICE failed) for:', from);
-            } catch (err) {
-              console.error('Error restarting ICE (ICE failed):', err);
-            }
+            (async () => {
+              try {
+                const offer = await peerConnection.createOffer({ iceRestart: true });
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('offer', {
+                  sessionId,
+                  offer,
+                  targetId: from
+                });
+                console.log('ICE restart offer sent (ICE failed) for:', from);
+              } catch (err) {
+                console.error('Error restarting ICE (ICE failed):', err);
+              }
+            })();
           }
         };
 
