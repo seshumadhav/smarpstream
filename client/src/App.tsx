@@ -571,7 +571,12 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const stream = localStreamRef.current;
         if (stream) {
           stream.getTracks().forEach(track => {
+            // Temporarily enable track for adding to peer connection
+            const wasEnabled = track.enabled;
+            track.enabled = true;
             pc!.addTrack(track, stream);
+            // Restore original state (disabled)
+            track.enabled = wasEnabled;
           });
         }
 
