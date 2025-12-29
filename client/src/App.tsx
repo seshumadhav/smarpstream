@@ -67,8 +67,8 @@ function Home() {
     if (sessionLink) {
       try {
         await navigator.clipboard.writeText(sessionLink);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
       } catch (err) {
         // Fallback for older browsers or if clipboard API fails
         const textArea = document.createElement('textarea');
@@ -104,7 +104,7 @@ function Home() {
             </button>
           </form>
           
-          <div className="session-link-container">
+            <div className="session-link-container">
             {sessionLink && (
               <div className="session-link-wrapper">
                 <span className="session-link-label">Your call link:</span>
@@ -119,8 +119,8 @@ function Home() {
                     {copied ? '✓' : '📋'}
                   </button>
                 </span>
-              </div>
-            )}
+            </div>
+          )}
           </div>
         </div>
 
@@ -232,7 +232,7 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
 
   const handleConfirm = () => {
     setShowConfirmModal(false);
-    navigate('/');
+      navigate('/');
   };
 
   const handleCancel = () => {
@@ -273,7 +273,7 @@ function SessionHeader({ session }: { session: any }) {
 
   const handleConfirm = () => {
     setShowConfirmModal(false);
-    navigate('/');
+      navigate('/');
   };
 
   const handleCancel = () => {
@@ -289,14 +289,14 @@ function SessionHeader({ session }: { session: any }) {
         title="Leave Call?"
         message="Are you sure you want to disconnect from the call and return to home?"
       />
-      <div className="session-header">
-        <div className="header-content">
-          <h2 className="session-title">
-            <span className="home-link" onClick={handleHomeClick}>Smarp Stream</span>
-            <span className="session-separator"> → </span>
-            <span className="session-name">{session.title}</span>
-          </h2>
-        </div>
+    <div className="session-header">
+      <div className="header-content">
+        <h2 className="session-title">
+          <span className="home-link" onClick={handleHomeClick}>Smarp Stream</span>
+          <span className="session-separator"> → </span>
+          <span className="session-name">{session.title}</span>
+        </h2>
+      </div>
       </div>
     </>
   );
@@ -401,13 +401,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           audio: true
         };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        // Disable both audio and video by default - user must explicitly enable
-        stream.getVideoTracks().forEach(track => {
-          track.enabled = false;
-        });
-        stream.getAudioTracks().forEach(track => {
-          track.enabled = false; // Mute audio by default
-        });
+        // IMPORTANT: Keep tracks enabled initially so they're included in SDP negotiation
+        // We'll disable them AFTER adding to peer connections
         setIsAudioEnabled(false); // Set audio state to disabled
         setIsVideoEnabled(false); // Set video state to disabled
         localStreamRef.current = stream;
@@ -544,12 +539,12 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
             console.log('Enabled remote track:', track.kind, track.id);
           });
           
-          setRemoteStreams(prev => {
-            const newMap = new Map(prev);
+        setRemoteStreams(prev => {
+          const newMap = new Map(prev);
             newMap.set(socketId, stream);
             console.log('Updated remote streams map. Keys:', Array.from(newMap.keys()));
-            return newMap;
-          });
+          return newMap;
+        });
         } else {
           console.warn('No streams in ontrack event (user-joined)!');
         }
@@ -664,14 +659,23 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       if (!pc) {
         // Create new peer connection
         pc = new RTCPeerConnection(pcConfig);
-        peersRef.current.set(from, pc);
-        setPeers(new Map(peersRef.current));
+      peersRef.current.set(from, pc);
+      setPeers(new Map(peersRef.current));
 
-        const stream = localStreamRef.current;
-        if (stream) {
-          stream.getTracks().forEach(track => {
-            // Add track enabled - this ensures it's included in SDP
+      const stream = localStreamRef.current;
+      if (stream) {
+        stream.getTracks().forEach(track => {
+            // Ensure track is enabled when adding to peer connection (for SDP negotiation)
+            const wasEnabled = track.enabled;
+            track.enabled = true;
             pc!.addTrack(track, stream);
+            // Now disable if user hasn't enabled it yet
+            if (!isAudioEnabled && track.kind === 'audio') {
+              track.enabled = false;
+            }
+            if (!isVideoEnabled && track.kind === 'video') {
+              track.enabled = false;
+            }
             console.log('Added track to peer connection (offer handler):', track.kind, 'track.enabled:', track.enabled, 'from:', from);
           });
         }
@@ -729,12 +733,12 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               console.log('Enabled remote track:', track.kind, track.id);
             });
             
-            setRemoteStreams(prev => {
-              const newMap = new Map(prev);
+        setRemoteStreams(prev => {
+          const newMap = new Map(prev);
               newMap.set(from, stream);
               console.log('Updated remote streams map. Keys:', Array.from(newMap.keys()));
-              return newMap;
-            });
+          return newMap;
+        });
           } else {
             console.warn('No streams in ontrack event (offer handler)!');
           }
@@ -804,14 +808,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         };
 
         peerConnection.onicecandidate = (event) => {
-          if (event.candidate) {
-            socket.emit('ice-candidate', {
-              sessionId,
-              candidate: event.candidate,
-              targetId: from
-            });
-          }
-        };
+        if (event.candidate) {
+          socket.emit('ice-candidate', {
+            sessionId,
+            candidate: event.candidate,
+            targetId: from
+          });
+        }
+      };
       }
       
       // Perfect Negotiation: Handle offer with collision detection
@@ -828,17 +832,17 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               pc.setRemoteDescription(new RTCSessionDescription(offer))
             ]);
           } else {
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
           }
           
           if (offer.type === 'offer') {
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            socket.emit('answer', {
-              sessionId,
-              answer,
-              targetId: from
-            });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit('answer', {
+        sessionId,
+        answer,
+        targetId: from
+      });
             console.log('Answer sent to:', from);
           }
         } catch (error) {
@@ -855,7 +859,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           console.log('Received answer from:', from, 'signaling state:', pc.signalingState);
           // Perfect Negotiation: Only set if we're expecting an answer
           if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'have-local-pranswer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
             console.log('Set remote description (answer) for:', from);
           } else if (pc.signalingState === 'stable') {
             // Connection already stable - this is a late/duplicate answer, safe to ignore
@@ -936,7 +940,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         playLeaveSound();
       }
     });
-    
+
     return () => {
       // Cleanup
       socket.emit('leave-session', { sessionId, userId });
@@ -1057,27 +1061,49 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
 
   const copyLink = async () => {
     const url = window.location.href;
+    // Always use fallback method for better compatibility
+    const textArea = document.createElement('textarea');
+    textArea.value = url;
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '2em';
+    textArea.style.height = '2em';
+    textArea.style.padding = '0';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      // Fallback for older browsers or if clipboard API fails
-      const textArea = document.createElement('textarea');
-      textArea.value = url;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (fallbackErr) {
-        console.error('Failed to copy:', fallbackErr);
+      const successful = document.execCommand('copy');
+      if (successful) {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+      } else {
+        // Try clipboard API as fallback
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
       }
-      document.body.removeChild(textArea);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      // Try clipboard API as last resort
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      } catch (clipboardErr) {
+        console.error('Clipboard API also failed:', clipboardErr);
+      }
     }
+    document.body.removeChild(textArea);
   };
 
   return (
@@ -1091,14 +1117,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               autoPlay
               playsInline
               muted
-              className="participant-video"
+              className="participant-video local-participant-video"
             />
             <div className="participant-label">You</div>
             <div className="audio-indicator-wrapper">
               <AudioLevelIndicator level={localAudioLevel} isLocal={true} />
-            </div>
           </div>
         </div>
+      </div>
         
         {/* Remote video - bottom half */}
         <div className="video-participant remote-participant">
