@@ -5,7 +5,32 @@ import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 import './App.css';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+// Automatically determine API URL based on current location
+const getApiUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  // In production, use the same hostname and port
+  // In development, use localhost:5001
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  const port = window.location.port;
+  
+  // If we're on localhost (development), use port 5001
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5001';
+  }
+  
+  // In production, use the same hostname and protocol
+  // If port 80 or 443, don't include port, otherwise use the same port
+  if (port === '80' || port === '443' || !port) {
+    return `${protocol}//${hostname}`;
+  }
+  
+  return `${protocol}//${hostname}:${port}`;
+};
+
+const API_URL = getApiUrl();
 
 // Home page component
 function Home() {
