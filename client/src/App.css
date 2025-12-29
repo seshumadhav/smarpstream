@@ -1672,7 +1672,7 @@ body {
   }
 }
 
-/* Audio Level Indicator */
+/* Audio Level Indicator - Simple dot indicator */
 .audio-level-indicator {
   display: flex;
   align-items: center;
@@ -1686,29 +1686,30 @@ body {
   position: relative;
 }
 
-.audio-level-indicator svg {
-  width: 20px;
-  height: 20px;
-  stroke: rgba(255, 255, 255, 0.7);
-  transition: stroke 0.2s ease;
+.audio-level-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.2s ease;
 }
 
-.audio-level-indicator.local svg {
-  stroke: #60a5fa;
+.audio-level-indicator.local .audio-level-dot {
+  background: #60a5fa;
 }
 
-.audio-level-indicator.remote svg {
-  stroke: #4ade80;
+.audio-level-indicator.remote .audio-level-dot {
+  background: #4ade80;
 }
 
-.audio-level-indicator.local.active svg {
-  stroke: #3b82f6;
-  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
+.audio-level-indicator.local.active .audio-level-dot {
+  background: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
 }
 
-.audio-level-indicator.remote.active svg {
-  stroke: #22c55e;
-  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5));
+.audio-level-indicator.remote.active .audio-level-dot {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
 }
 
 .audio-level-badge {
@@ -1736,6 +1737,23 @@ body {
 .audio-level-indicator[title*="0/5"] .audio-level-badge {
   display: none;
 }
+
+/* Audio button with intensity-based color */
+.control-btn-icon.audio-btn:not(.disabled) {
+  transition: all 0.2s ease;
+}
+
+.control-btn-icon.audio-btn:not(.disabled) svg {
+  transition: stroke 0.2s ease, filter 0.2s ease;
+}
+
+/* Intensity-based color scaling for audio button - using CSS custom properties via inline style */
+.control-btn-icon.audio-btn:not(.disabled) svg {
+  stroke: #60a5fa; /* Default blue */
+  filter: none;
+}
+
+/* Use JavaScript to update the color dynamically - we'll handle this in the component */
 
 @media (max-width: 768px) {
   .audio-indicator-wrapper,

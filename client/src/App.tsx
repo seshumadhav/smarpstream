@@ -337,7 +337,7 @@ const playLeaveSound = () => {
   setTimeout(() => playSound(400, 0.15, 'square'), 80);
 };
 
-// Audio Level Indicator Component
+// Audio Level Indicator Component - Simple visual indicator without mic icon
 function AudioLevelIndicator({ level, isLocal }: { level: number; isLocal: boolean }) {
   // Convert level (0-100) to intensity (0-5)
   const intensity = Math.min(5, Math.ceil((level / 100) * 5));
@@ -345,31 +345,10 @@ function AudioLevelIndicator({ level, isLocal }: { level: number; isLocal: boole
   
   return (
     <div className={`audio-level-indicator ${isLocal ? 'local' : 'remote'} ${isActive ? 'active' : ''}`} title={`Audio level: ${intensity}/5`}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        {intensity === 0 ? (
-          // Muted icon
-          <>
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-            <line x1="1" y1="1" x2="23" y2="23"></line>
-          </>
-        ) : (
-          // Microphone icon with sound waves
-          <>
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="23"></line>
-            <line x1="8" y1="23" x2="16" y2="23"></line>
-            {intensity >= 1 && <path d="M20 8a9 9 0 0 1-16 0" opacity="0.6"></path>}
-            {intensity >= 2 && <path d="M22 6a11 11 0 0 1-20 0" opacity="0.5"></path>}
-            {intensity >= 3 && <path d="M24 4a13 13 0 0 1-24 0" opacity="0.4"></path>}
-            {intensity >= 4 && <path d="M26 2a15 15 0 0 1-28 0" opacity="0.3"></path>}
-            {intensity >= 5 && <path d="M28 0a17 17 0 0 1-32 0" opacity="0.2"></path>}
-          </>
-        )}
-      </svg>
+      <div className="audio-level-dot" style={{ 
+        opacity: isActive ? 1 : 0.3,
+        transform: `scale(${0.8 + (intensity / 5) * 0.4})`
+      }}></div>
       {intensity > 0 && <div className="audio-level-badge">{intensity}</div>}
     </div>
   );
