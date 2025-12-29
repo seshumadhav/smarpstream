@@ -725,7 +725,20 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     socket.on('answer', async ({ answer, from }: { answer: RTCSessionDescriptionInit; from: string }) => {
       const pc = peersRef.current.get(from);
       if (pc) {
-        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        try {
+          console.log('Received answer from:', from, 'signaling state:', pc.signalingState);
+          // Only set remote description if we're in the right state
+          if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'have-local-pranswer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            console.log('Set remote description (answer) for:', from);
+          } else {
+            console.warn('Cannot set remote answer - wrong signaling state:', pc.signalingState, 'from:', from);
+          }
+        } catch (error) {
+          console.error('Error setting remote description (answer):', error, 'from:', from, 'state:', pc.signalingState);
+        }
+      } else {
+        console.warn('Received answer but no peer connection found for:', from);
       }
     });
 
