@@ -1151,6 +1151,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               playsInline
               muted
               className="participant-video local-participant-video"
+              style={{ display: isVideoEnabled ? 'block' : 'none' }}
             />
             <div className="participant-label">You</div>
         </div>
