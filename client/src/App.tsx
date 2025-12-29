@@ -1215,11 +1215,15 @@ function ChatSection({ sessionId }: { sessionId: string }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-resize textarea based on content
+  // Auto-resize textarea based on content (with max height constraint)
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const maxHeight = 150; // Match CSS max-height
+      textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+      // Only show scrollbar if content exceeds max height
+      textareaRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
     }
   }, [message]);
 
