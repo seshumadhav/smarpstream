@@ -1030,11 +1030,12 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
 
   // Helper function to get audio button color based on intensity
   const getAudioButtonColor = (level: number): string => {
-    if (!isAudioEnabled || level === 0) return '#60a5fa'; // Light blue when muted or no audio
-    if (level < 20) return '#3b82f6'; // Blue
-    if (level < 40) return '#2563eb'; // Medium blue
-    if (level < 60) return '#1d4ed8'; // Dark blue
-    if (level < 80) return '#1e40af'; // Very dark blue
+    if (!isAudioEnabled) return '#60a5fa'; // Light blue when muted
+    if (level < 5) return '#60a5fa'; // Light blue - very quiet
+    if (level < 15) return '#3b82f6'; // Blue - quiet
+    if (level < 30) return '#2563eb'; // Medium blue - moderate
+    if (level < 50) return '#1d4ed8'; // Dark blue - loud
+    if (level < 70) return '#1e40af'; // Very dark blue - very loud
     return '#1e3a8a'; // Darkest blue (highest intensity)
   };
 
