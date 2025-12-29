@@ -476,17 +476,13 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       setPeers(new Map(peersRef.current));
 
       // Add local stream tracks to peer connection
-      // CRITICAL: Add tracks ENABLED so they're properly included in SDP
-      // We'll disable them after adding, but they need to be enabled when added
+      // IMPORTANT: Add tracks as-is (disabled). They're part of the connection.
+      // When enabled later via toggle, they'll start sending without renegotiation.
       const stream = localStreamRef.current;
       if (stream) {
         stream.getTracks().forEach(track => {
-          // Temporarily enable track for adding to peer connection
-          const wasEnabled = track.enabled;
-          track.enabled = true;
           pc.addTrack(track, stream);
-          // Restore original state (disabled)
-          track.enabled = wasEnabled;
+          console.log('Added track to peer connection:', track.kind, 'enabled:', track.enabled, 'socketId:', socketId);
         });
       }
 
@@ -571,12 +567,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const stream = localStreamRef.current;
         if (stream) {
           stream.getTracks().forEach(track => {
-            // Temporarily enable track for adding to peer connection
-            const wasEnabled = track.enabled;
-            track.enabled = true;
             pc!.addTrack(track, stream);
-            // Restore original state (disabled)
-            track.enabled = wasEnabled;
+            console.log('Added track to peer connection (offer handler):', track.kind, 'enabled:', track.enabled, 'from:', from);
           });
         }
 
@@ -774,7 +766,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     }
   }, [remoteStreams]);
 
-  const toggleVideo = async () => {
+  const toggleVideo = () => {
     const stream = localStreamRef.current;
     if (stream) {
       const videoTrack = stream.getVideoTracks()[0];
@@ -782,39 +774,23 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const newState = !isVideoEnabled;
         videoTrack.enabled = newState;
         setIsVideoEnabled(newState);
-        console.log('Video track enabled:', newState);
+        console.log('Video track enabled:', newState, 'Track ID:', videoTrack.id);
         
-        // When enabling, ensure track is in all peer connections and renegotiate
-        if (newState && peersRef.current.size > 0) {
-          for (const [socketId, pc] of Array.from(peersRef.current.entries())) {
-            try {
-              // Check if track is in connection
-              const sender = pc.getSenders().find(s => s.track === videoTrack);
-              if (!sender) {
-                // Add track if not present (should already be there, but just in case)
-                pc.addTrack(videoTrack, stream);
-                console.log('Added video track to peer connection:', socketId);
-              }
-              
-              // Force renegotiation to ensure track state is properly synced
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              socketRef.current?.emit('offer', {
-                sessionId,
-                offer,
-                targetId: socketId
-              });
-              console.log('Renegotiated video for:', socketId);
-            } catch (err) {
-              console.error('Error renegotiating video:', err);
-            }
+        // Verify track is in all peer connections
+        peersRef.current.forEach((pc, socketId) => {
+          const sender = pc.getSenders().find(s => s.track === videoTrack);
+          if (sender) {
+            console.log('Video track sender found for:', socketId, 'track enabled:', videoTrack.enabled);
+          } else {
+            console.warn('Video track sender NOT found for:', socketId, '- adding track');
+            pc.addTrack(videoTrack, stream);
           }
-        }
+        });
       }
     }
   };
 
-  const toggleAudio = async () => {
+  const toggleAudio = () => {
     const stream = localStreamRef.current;
     if (stream) {
       const audioTrack = stream.getAudioTracks()[0];
@@ -822,34 +798,18 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         const newState = !isAudioEnabled;
         audioTrack.enabled = newState;
         setIsAudioEnabled(newState);
-        console.log('Audio track enabled:', newState);
+        console.log('Audio track enabled:', newState, 'Track ID:', audioTrack.id);
         
-        // When enabling, ensure track is in all peer connections and renegotiate
-        if (newState && peersRef.current.size > 0) {
-          for (const [socketId, pc] of Array.from(peersRef.current.entries())) {
-            try {
-              // Check if track is in connection
-              const sender = pc.getSenders().find(s => s.track === audioTrack);
-              if (!sender) {
-                // Add track if not present (should already be there, but just in case)
-                pc.addTrack(audioTrack, stream);
-                console.log('Added audio track to peer connection:', socketId);
-              }
-              
-              // Force renegotiation to ensure track state is properly synced
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              socketRef.current?.emit('offer', {
-                sessionId,
-                offer,
-                targetId: socketId
-              });
-              console.log('Renegotiated audio for:', socketId);
-            } catch (err) {
-              console.error('Error renegotiating audio:', err);
-            }
+        // Verify track is in all peer connections
+        peersRef.current.forEach((pc, socketId) => {
+          const sender = pc.getSenders().find(s => s.track === audioTrack);
+          if (sender) {
+            console.log('Audio track sender found for:', socketId, 'track enabled:', audioTrack.enabled);
+          } else {
+            console.warn('Audio track sender NOT found for:', socketId, '- adding track');
+            pc.addTrack(audioTrack, stream);
           }
-        }
+        });
       }
     }
   };
