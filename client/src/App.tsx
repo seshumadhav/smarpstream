@@ -640,10 +640,42 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         // Add connection state logging
         peerConnection.onconnectionstatechange = () => {
           console.log('Peer connection state:', from, peerConnection.connectionState);
+          if (peerConnection.connectionState === 'failed') {
+            console.error('Peer connection failed for:', from, '- attempting to restart ICE');
+            // Try to recover by restarting ICE
+            try {
+              const offer = await peerConnection.createOffer({ iceRestart: true });
+              await peerConnection.setLocalDescription(offer);
+              socket.emit('offer', {
+                sessionId,
+                offer,
+                targetId: from
+              });
+              console.log('ICE restart offer sent for:', from);
+            } catch (err) {
+              console.error('Error restarting ICE:', err);
+            }
+          }
         };
         
         peerConnection.oniceconnectionstatechange = () => {
           console.log('ICE connection state:', from, peerConnection.iceConnectionState);
+          if (peerConnection.iceConnectionState === 'failed') {
+            console.error('ICE connection failed for:', from, '- attempting to restart ICE');
+            // Try to recover by restarting ICE
+            try {
+              const offer = await peerConnection.createOffer({ iceRestart: true });
+              await peerConnection.setLocalDescription(offer);
+              socket.emit('offer', {
+                sessionId,
+                offer,
+                targetId: from
+              });
+              console.log('ICE restart offer sent (ICE failed) for:', from);
+            } catch (err) {
+              console.error('Error restarting ICE (ICE failed):', err);
+            }
+          }
         };
 
         peerConnection.onicecandidate = (event) => {
@@ -731,8 +763,11 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           if (pc.signalingState === 'have-local-offer' || pc.signalingState === 'have-local-pranswer') {
             await pc.setRemoteDescription(new RTCSessionDescription(answer));
             console.log('Set remote description (answer) for:', from);
+          } else if (pc.signalingState === 'stable') {
+            // Connection is already stable - this answer is late/duplicate, ignore it
+            console.log('Answer received but connection already stable - ignoring (this is OK):', from);
           } else {
-            console.warn('Cannot set remote answer - wrong signaling state:', pc.signalingState, 'from:', from);
+            console.warn('Cannot set remote answer - unexpected signaling state:', pc.signalingState, 'from:', from);
           }
         } catch (error) {
           console.error('Error setting remote description (answer):', error, 'from:', from, 'state:', pc.signalingState);
