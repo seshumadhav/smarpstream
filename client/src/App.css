@@ -528,6 +528,16 @@ body {
   flex-shrink: 0;
 }
 
+.video-container-split {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0;
+  height: 100%;
+}
+
 .video-container {
   flex: 1;
   display: flex;
