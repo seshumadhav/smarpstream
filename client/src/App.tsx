@@ -746,7 +746,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         
         // ALWAYS renegotiate when enabling/disabling video to ensure proper media flow
         if (peersRef.current.size > 0) {
-          for (const [socketId, pc] of peersRef.current.entries()) {
+          for (const [socketId, pc] of Array.from(peersRef.current.entries())) {
             try {
               // Check if track is in connection
               const sender = pc.getSenders().find(s => s.track === videoTrack);
@@ -786,7 +786,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         
         // ALWAYS renegotiate when enabling/disabling audio to ensure proper media flow
         if (peersRef.current.size > 0) {
-          for (const [socketId, pc] of peersRef.current.entries()) {
+          for (const [socketId, pc] of Array.from(peersRef.current.entries())) {
             try {
               // Check if track is in connection
               const sender = pc.getSenders().find(s => s.track === audioTrack);
