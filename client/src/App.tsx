@@ -669,13 +669,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               // We already have a local offer, set remote description will fail
               // We need to wait or handle this differently
               console.warn('Cannot handle renegotiation - already have local offer. Waiting...');
-              // Wait a bit and try again
+              // Wait a bit and try again - capture pc in const for closure
+              const peerConn = pc;
               setTimeout(async () => {
-                if (pc.signalingState === 'stable') {
+                if (peerConn && peerConn.signalingState === 'stable') {
                   try {
-                    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
+                    await peerConn.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await peerConn.createAnswer();
+                    await peerConn.setLocalDescription(answer);
                     socket.emit('answer', {
                       sessionId,
                       answer,
