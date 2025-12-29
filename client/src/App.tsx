@@ -339,18 +339,37 @@ const playLeaveSound = () => {
 
 // Audio Level Indicator Component
 function AudioLevelIndicator({ level, isLocal }: { level: number; isLocal: boolean }) {
-  // Convert level (0-100) to bars (0-5)
-  const bars = Math.min(5, Math.ceil((level / 100) * 5));
+  // Convert level (0-100) to intensity (0-5)
+  const intensity = Math.min(5, Math.ceil((level / 100) * 5));
   
   return (
-    <div className={`audio-level-indicator ${isLocal ? 'local' : 'remote'}`}>
-      {[1, 2, 3, 4, 5].map((barNum) => (
-        <div
-          key={barNum}
-          className={`audio-bar ${barNum <= bars ? 'active' : ''}`}
-          style={{ height: `${barNum * 4 + 2}px` }}
-        />
-      ))}
+    <div className={`audio-level-indicator ${isLocal ? 'local' : 'remote'}`} title={`Audio level: ${intensity}/5`}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {intensity === 0 ? (
+          // Muted icon
+          <>
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          </>
+        ) : (
+          // Microphone icon with waves
+          <>
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+            {intensity >= 1 && <path d="M20 8a9 9 0 0 1-16 0" opacity={intensity >= 1 ? 0.6 : 0}></path>}
+            {intensity >= 2 && <path d="M22 6a11 11 0 0 1-20 0" opacity={intensity >= 2 ? 0.5 : 0}></path>}
+            {intensity >= 3 && <path d="M24 4a13 13 0 0 1-24 0" opacity={intensity >= 3 ? 0.4 : 0}></path>}
+            {intensity >= 4 && <path d="M26 2a15 15 0 0 1-28 0" opacity={intensity >= 4 ? 0.3 : 0}></path>}
+            {intensity >= 5 && <path d="M28 0a17 17 0 0 1-32 0" opacity={intensity >= 5 ? 0.2 : 0}></path>}
+          </>
+        )}
+      </svg>
+      <div className="audio-level-badge">{intensity}</div>
     </div>
   );
 }

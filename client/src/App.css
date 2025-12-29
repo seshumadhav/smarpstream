@@ -523,18 +523,19 @@ body {
 
 /* Video Section */
 .video-section {
-  background: #0a0a0a;
+  background: #0f0f0f;
   border-radius: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 2px solid rgba(255, 255, 255, 0.12);
   height: 100%;
   overflow: hidden;
   width: 50%;
   flex-shrink: 0;
   min-width: 0;
   position: relative;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
 }
 
 .video-container-split {
@@ -828,7 +829,7 @@ body {
 
 /* Chat Section */
 .chat-section {
-  background: #0a0a0a;
+  background: #0f0f0f;
   border-radius: 0;
   display: flex;
   flex-direction: column;
@@ -836,9 +837,10 @@ body {
   width: 50%;
   flex-shrink: 0;
   min-width: 0;
-  border: none;
+  border-left: 2px solid rgba(255, 255, 255, 0.12);
   position: relative;
   overflow: hidden;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
 }
 
 .chat-header {
@@ -1670,43 +1672,88 @@ body {
 /* Audio Level Indicator */
 .audio-level-indicator {
   display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  padding: 4px 6px;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
 }
 
-.audio-bar {
-  width: 3px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-  transition: background 0.1s ease;
+.audio-level-indicator svg {
+  width: 20px;
+  height: 20px;
+  stroke: rgba(255, 255, 255, 0.7);
+  transition: stroke 0.2s ease;
 }
 
-.audio-bar.active {
-  background: #4ade80;
+.audio-level-indicator.local svg {
+  stroke: #60a5fa;
 }
 
-.audio-level-indicator.local .audio-bar.active {
-  background: #60a5fa;
+.audio-level-indicator.remote svg {
+  stroke: #4ade80;
+}
+
+.audio-level-indicator.local.active svg {
+  stroke: #3b82f6;
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
+}
+
+.audio-level-indicator.remote.active svg {
+  stroke: #22c55e;
+  filter: drop-shadow(0 0 4px rgba(34, 197, 94, 0.5));
+}
+
+.audio-level-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: rgba(59, 130, 246, 0.9);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
+.audio-level-indicator.remote .audio-level-badge {
+  background: rgba(34, 197, 94, 0.9);
+}
+
+.audio-level-indicator[title*="0/5"] .audio-level-badge {
+  display: none;
 }
 
 @media (max-width: 768px) {
-  .local-audio-indicator-wrapper,
-  .remote-audio-indicator-wrapper {
+  .audio-indicator-wrapper,
+  .audio-indicator-wrapper.remote {
     top: 8px;
     right: 8px;
   }
   
   .audio-level-indicator {
-    padding: 3px 4px;
-    gap: 1.5px;
+    padding: 4px 6px;
   }
   
-  .audio-bar {
-    width: 2.5px;
+  .audio-level-indicator svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .audio-level-badge {
+    width: 12px;
+    height: 12px;
+    font-size: 8px;
   }
 }
 
