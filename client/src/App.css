@@ -613,59 +613,66 @@ body {
 .video-controls {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  padding: 12px;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
   flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.3);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .control-btn-icon {
-  padding: 12px;
-  background: linear-gradient(135deg, #2a2a2a, #1f1f1f);
+  padding: 0;
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 50px;
-  height: 50px;
-  line-height: 1;
+  width: 48px;
+  height: 48px;
+  backdrop-filter: blur(10px);
 }
 
 .control-btn-icon:hover:not(:disabled) {
-  background: linear-gradient(135deg, #3a3a3a, #2f2f2f);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.control-btn-icon:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .control-btn-icon.disabled {
-  background: linear-gradient(135deg, #2a1a1a, #1f0f0f);
-  border-color: rgba(255, 0, 0, 0.4);
-  opacity: 0.7;
+  background: rgba(255, 0, 0, 0.3);
+  opacity: 0.8;
+}
+
+.control-btn-icon.disabled:hover {
+  background: rgba(255, 0, 0, 0.4);
 }
 
 .control-btn-icon.leave-btn {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  border-color: rgba(255, 0, 0, 0.4);
+  background: rgba(239, 68, 68, 0.9);
 }
 
 .control-btn-icon.leave-btn:hover {
-  background: linear-gradient(135deg, #f74c3c, #d0392b);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+  background: rgba(239, 68, 68, 1);
+  transform: scale(1.1);
 }
 
-.control-btn-icon .icon {
-  font-size: 24px;
-  line-height: 1;
+.control-btn-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
 }
 
 .control-btn-icon:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -737,11 +744,14 @@ body {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px;
+  overflow-x: hidden;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   background: #000;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chat-message {
