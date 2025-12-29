@@ -378,6 +378,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
   const lastSoundTimeRef = React.useRef<{ type: string; time: number }>({ type: '', time: 0 });
   // Perfect Negotiation pattern: track if we're making an offer
   const makingOfferRef = React.useRef<Map<string, boolean>>(new Map());
+  // Track ICE restart attempts to prevent infinite loops
+  const iceRestartAttemptsRef = React.useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     const socket = io(API_URL);
@@ -557,46 +559,64 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
       pc.onconnectionstatechange = () => {
         console.log('Peer connection state:', socketId, pc.connectionState);
         if (pc.connectionState === 'failed') {
-          console.error('Peer connection failed for:', socketId, '- attempting to restart ICE');
-          // Try to recover by restarting ICE
-          (async () => {
-            try {
-              const offer = await pc.createOffer({ iceRestart: true });
-              await pc.setLocalDescription(offer);
-              socket.emit('offer', {
-                sessionId,
-                offer,
-                targetId: socketId
-              });
-              console.log('ICE restart offer sent for:', socketId);
-            } catch (err) {
-              console.error('Error restarting ICE:', err);
-            }
-          })();
+          const attempts = iceRestartAttemptsRef.current.get(socketId) || 0;
+          if (attempts < 3) {
+            console.error('Peer connection failed for:', socketId, '- attempting to restart ICE (attempt', attempts + 1, ')');
+            iceRestartAttemptsRef.current.set(socketId, attempts + 1);
+            // Try to recover by restarting ICE
+            (async () => {
+              try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                socket.emit('offer', {
+                  sessionId,
+                  offer,
+                  targetId: socketId
+                });
+                console.log('ICE restart offer sent for:', socketId);
+              } catch (err) {
+                console.error('Error restarting ICE:', err);
+              }
+            })();
+          } else {
+            console.error('Peer connection failed for:', socketId, '- max restart attempts reached, giving up');
+          }
+        } else if (pc.connectionState === 'connected') {
+          // Reset restart attempts on successful connection
+          iceRestartAttemptsRef.current.set(socketId, 0);
         } else if (pc.connectionState === 'disconnected') {
-          console.error('Peer connection disconnected:', socketId);
+          console.log('Peer connection disconnected:', socketId);
         }
       };
       
       pc.oniceconnectionstatechange = () => {
         console.log('ICE connection state:', socketId, pc.iceConnectionState);
         if (pc.iceConnectionState === 'failed') {
-          console.error('ICE connection failed for:', socketId, '- attempting to restart ICE');
-          // Try to recover by restarting ICE
-          (async () => {
-            try {
-              const offer = await pc.createOffer({ iceRestart: true });
-              await pc.setLocalDescription(offer);
-              socket.emit('offer', {
-                sessionId,
-                offer,
-                targetId: socketId
-              });
-              console.log('ICE restart offer sent (ICE failed) for:', socketId);
-            } catch (err) {
-              console.error('Error restarting ICE (ICE failed):', err);
-            }
-          })();
+          const attempts = iceRestartAttemptsRef.current.get(socketId) || 0;
+          if (attempts < 3) {
+            console.error('ICE connection failed for:', socketId, '- attempting to restart ICE (attempt', attempts + 1, ')');
+            iceRestartAttemptsRef.current.set(socketId, attempts + 1);
+            // Try to recover by restarting ICE
+            (async () => {
+              try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                socket.emit('offer', {
+                  sessionId,
+                  offer,
+                  targetId: socketId
+                });
+                console.log('ICE restart offer sent (ICE failed) for:', socketId);
+              } catch (err) {
+                console.error('Error restarting ICE (ICE failed):', err);
+              }
+            })();
+          } else {
+            console.error('ICE connection failed for:', socketId, '- max restart attempts reached, giving up');
+          }
+        } else if (pc.iceConnectionState === 'connected') {
+          // Reset restart attempts on successful connection
+          iceRestartAttemptsRef.current.set(socketId, 0);
         }
       };
       
@@ -720,48 +740,66 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           }
         };
         
-        // Add connection state logging
+        // Add connection state logging with retry limit
         peerConnection.onconnectionstatechange = () => {
           console.log('Peer connection state:', from, peerConnection.connectionState);
           if (peerConnection.connectionState === 'failed') {
-            console.error('Peer connection failed for:', from, '- attempting to restart ICE');
-            // Try to recover by restarting ICE
-            (async () => {
-              try {
-                const offer = await peerConnection.createOffer({ iceRestart: true });
-                await peerConnection.setLocalDescription(offer);
-                socket.emit('offer', {
-                  sessionId,
-                  offer,
-                  targetId: from
-                });
-                console.log('ICE restart offer sent for:', from);
-              } catch (err) {
-                console.error('Error restarting ICE:', err);
-              }
-            })();
+            const attempts = iceRestartAttemptsRef.current.get(from) || 0;
+            if (attempts < 3) {
+              console.error('Peer connection failed for:', from, '- attempting to restart ICE (attempt', attempts + 1, ')');
+              iceRestartAttemptsRef.current.set(from, attempts + 1);
+              // Try to recover by restarting ICE
+              (async () => {
+                try {
+                  const offer = await peerConnection.createOffer({ iceRestart: true });
+                  await peerConnection.setLocalDescription(offer);
+                  socket.emit('offer', {
+                    sessionId,
+                    offer,
+                    targetId: from
+                  });
+                  console.log('ICE restart offer sent for:', from);
+                } catch (err) {
+                  console.error('Error restarting ICE:', err);
+                }
+              })();
+            } else {
+              console.error('Peer connection failed for:', from, '- max restart attempts reached, giving up');
+            }
+          } else if (peerConnection.connectionState === 'connected') {
+            // Reset restart attempts on successful connection
+            iceRestartAttemptsRef.current.set(from, 0);
           }
         };
         
         peerConnection.oniceconnectionstatechange = () => {
           console.log('ICE connection state:', from, peerConnection.iceConnectionState);
           if (peerConnection.iceConnectionState === 'failed') {
-            console.error('ICE connection failed for:', from, '- attempting to restart ICE');
-            // Try to recover by restarting ICE
-            (async () => {
-              try {
-                const offer = await peerConnection.createOffer({ iceRestart: true });
-                await peerConnection.setLocalDescription(offer);
-                socket.emit('offer', {
-                  sessionId,
-                  offer,
-                  targetId: from
-                });
-                console.log('ICE restart offer sent (ICE failed) for:', from);
-              } catch (err) {
-                console.error('Error restarting ICE (ICE failed):', err);
-              }
-            })();
+            const attempts = iceRestartAttemptsRef.current.get(from) || 0;
+            if (attempts < 3) {
+              console.error('ICE connection failed for:', from, '- attempting to restart ICE (attempt', attempts + 1, ')');
+              iceRestartAttemptsRef.current.set(from, attempts + 1);
+              // Try to recover by restarting ICE
+              (async () => {
+                try {
+                  const offer = await peerConnection.createOffer({ iceRestart: true });
+                  await peerConnection.setLocalDescription(offer);
+                  socket.emit('offer', {
+                    sessionId,
+                    offer,
+                    targetId: from
+                  });
+                  console.log('ICE restart offer sent (ICE failed) for:', from);
+                } catch (err) {
+                  console.error('Error restarting ICE (ICE failed):', err);
+                }
+              })();
+            } else {
+              console.error('ICE connection failed for:', from, '- max restart attempts reached, giving up');
+            }
+          } else if (peerConnection.iceConnectionState === 'connected') {
+            // Reset restart attempts on successful connection
+            iceRestartAttemptsRef.current.set(from, 0);
           }
         };
 
@@ -1010,14 +1048,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsVideoEnabled(newState);
         console.log('Video track enabled:', newState, 'Track ID:', videoTrack.id);
         
-        // Verify track is in all peer connections
+        // Tracks should already be in peer connections from initial setup
+        // Just verify they exist (don't add again - that would cause issues)
         peersRef.current.forEach((pc, socketId) => {
           const sender = pc.getSenders().find(s => s.track === videoTrack);
           if (sender) {
             console.log('Video track sender found for:', socketId, 'track enabled:', videoTrack.enabled);
           } else {
-            console.warn('Video track sender NOT found for:', socketId, '- adding track');
-            pc.addTrack(videoTrack, stream);
+            console.warn('Video track sender NOT found for:', socketId, '- this should not happen');
           }
         });
       }
@@ -1034,14 +1072,14 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsAudioEnabled(newState);
         console.log('Audio track enabled:', newState, 'Track ID:', audioTrack.id);
         
-        // Verify track is in all peer connections
+        // Tracks should already be in peer connections from initial setup
+        // Just verify they exist (don't add again - that would cause issues)
         peersRef.current.forEach((pc, socketId) => {
           const sender = pc.getSenders().find(s => s.track === audioTrack);
           if (sender) {
             console.log('Audio track sender found for:', socketId, 'track enabled:', audioTrack.enabled);
           } else {
-            console.warn('Audio track sender NOT found for:', socketId, '- adding track');
-            pc.addTrack(audioTrack, stream);
+            console.warn('Audio track sender NOT found for:', socketId, '- this should not happen');
           }
         });
       }
