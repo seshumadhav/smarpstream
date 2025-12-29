@@ -734,7 +734,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     }
   }, [remoteStreams]);
 
-  const toggleVideo = () => {
+  const toggleVideo = async () => {
     const stream = localStreamRef.current;
     if (stream) {
       const videoTrack = stream.getVideoTracks()[0];
@@ -744,34 +744,37 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsVideoEnabled(newState);
         console.log('Video track enabled:', newState);
         
-        // When enabling video, the track should already be in the peer connection
-        // Just enabling it should make it start sending
-        // But we need to ensure the connection is established
-        if (newState) {
-          peersRef.current.forEach((pc, socketId) => {
-            const sender = pc.getSenders().find(s => s.track === videoTrack);
-            if (sender) {
-              console.log('Video track sender found, track should be sending now');
-            } else {
-              console.warn('Video track sender not found, adding track');
-              pc.addTrack(videoTrack, stream);
-              // Renegotiate if track wasn't in connection
-              pc.createOffer().then(offer => {
-                pc.setLocalDescription(offer);
-                socketRef.current?.emit('offer', {
-                  sessionId,
-                  offer,
-                  targetId: socketId
-                });
-              }).catch(err => console.error('Error creating offer for video:', err));
+        // ALWAYS renegotiate when enabling/disabling video to ensure proper media flow
+        if (peersRef.current.size > 0) {
+          for (const [socketId, pc] of peersRef.current.entries()) {
+            try {
+              // Check if track is in connection
+              const sender = pc.getSenders().find(s => s.track === videoTrack);
+              if (!sender) {
+                // Add track if not present
+                pc.addTrack(videoTrack, stream);
+                console.log('Added video track to peer connection:', socketId);
+              }
+              
+              // Force renegotiation to ensure track state is properly synced
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socketRef.current?.emit('offer', {
+                sessionId,
+                offer,
+                targetId: socketId
+              });
+              console.log('Renegotiated video for:', socketId);
+            } catch (err) {
+              console.error('Error renegotiating video:', err);
             }
-          });
+          }
         }
       }
     }
   };
 
-  const toggleAudio = () => {
+  const toggleAudio = async () => {
     const stream = localStreamRef.current;
     if (stream) {
       const audioTrack = stream.getAudioTracks()[0];
@@ -781,28 +784,31 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsAudioEnabled(newState);
         console.log('Audio track enabled:', newState);
         
-        // When enabling audio, the track should already be in the peer connection
-        // Just enabling it should make it start sending
-        // But we need to ensure the connection is established
-        if (newState) {
-          peersRef.current.forEach((pc, socketId) => {
-            const sender = pc.getSenders().find(s => s.track === audioTrack);
-            if (sender) {
-              console.log('Audio track sender found, track should be sending now');
-            } else {
-              console.warn('Audio track sender not found, adding track');
-              pc.addTrack(audioTrack, stream);
-              // Renegotiate if track wasn't in connection
-              pc.createOffer().then(offer => {
-                pc.setLocalDescription(offer);
-                socketRef.current?.emit('offer', {
-                  sessionId,
-                  offer,
-                  targetId: socketId
-                });
-              }).catch(err => console.error('Error creating offer for audio:', err));
+        // ALWAYS renegotiate when enabling/disabling audio to ensure proper media flow
+        if (peersRef.current.size > 0) {
+          for (const [socketId, pc] of peersRef.current.entries()) {
+            try {
+              // Check if track is in connection
+              const sender = pc.getSenders().find(s => s.track === audioTrack);
+              if (!sender) {
+                // Add track if not present
+                pc.addTrack(audioTrack, stream);
+                console.log('Added audio track to peer connection:', socketId);
+              }
+              
+              // Force renegotiation to ensure track state is properly synced
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socketRef.current?.emit('offer', {
+                sessionId,
+                offer,
+                targetId: socketId
+              });
+              console.log('Renegotiated audio for:', socketId);
+            } catch (err) {
+              console.error('Error renegotiating audio:', err);
             }
-          });
+          }
         }
       }
     }
