@@ -163,6 +163,7 @@ body {
   letter-spacing: 0.02em;
   line-height: 1.5;
   flex-shrink: 0;
+  flex: 1;
 }
 
 .home-content {
@@ -1253,6 +1254,20 @@ body {
   .page-header {
     padding: 20px 16px;
     padding-top: max(20px, env(safe-area-inset-top));
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .back-button {
+    min-width: 36px;
+    height: 36px;
+    padding: 6px 10px;
+  }
+  
+  .back-button svg {
+    width: 18px;
+    height: 18px;
   }
 
   .page-heading {
