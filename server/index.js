@@ -122,7 +122,8 @@ app.post('/api/sessions', (req, res) => {
       type: type || 'video', // 'video' or 'audio'
       createdAt: new Date(),
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      participants: []
+      participants: [],
+      messages: [] // Store chat messages for history
     };
     
     sessions.set(sessionId, session);
@@ -214,10 +215,11 @@ io.on('connection', (socket) => {
     // Also notify them to play join sound (only to others, not the person who just joined)
     socket.to(sessionId).emit('play-sound', { soundType: 'join' });
     
-    // Send list of existing participants
+    // Send list of existing participants and chat history
     socket.emit('session-joined', {
       sessionId,
-      participants: session.participants.filter(p => p !== userId)
+      participants: session.participants.filter(p => p !== userId),
+      messages: session.messages || [] // Send chat history to new joiner
     });
   });
   
@@ -236,13 +238,32 @@ io.on('connection', (socket) => {
   
   // Chat messages
   socket.on('chat-message', ({ sessionId, message, userId, type, data }) => {
-    io.to(sessionId).emit('chat-message', {
+    const session = sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+    
+    const chatMessage = {
       message,
       userId,
-      type, // 'text', 'image', 'link'
+      type, // 'text', 'image', 'link', 'image-url', 'base64-image'
       data,
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    // Store message in session history
+    if (!session.messages) {
+      session.messages = [];
+    }
+    session.messages.push(chatMessage);
+    
+    // Limit history to last 1000 messages to prevent memory issues
+    if (session.messages.length > 1000) {
+      session.messages = session.messages.slice(-1000);
+    }
+    
+    // Broadcast to all participants
+    io.to(sessionId).emit('chat-message', chatMessage);
   });
   
   // Audio level updates

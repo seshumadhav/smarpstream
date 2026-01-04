@@ -1634,6 +1634,28 @@ body {
   
   .header-content-wrapper {
     margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .view-control-panel-above-chat-header {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    min-width: auto;
+  }
+  
+  .view-control-btn {
+    padding: 6px 8px;
+    min-width: 36px;
+    height: 36px;
+  }
+  
+  .view-control-btn svg {
+    width: 16px;
+    height: 16px;
   }
   
   .back-button {
@@ -1656,6 +1678,11 @@ body {
   .page-caption {
     font-size: 14px;
     line-height: 1.5;
+  }
+  
+  /* Hide page-caption on call page (session-room) */
+  .session-room .page-caption {
+    display: none !important;
   }
 
   .home-content {

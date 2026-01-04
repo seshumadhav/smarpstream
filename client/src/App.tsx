@@ -159,7 +159,7 @@ function Home() {
       <div className="deployment-info">Last deployed: {deploymentTime}</div>
       <div className="page-header">
         <h1 className="page-heading">Smarp Stream</h1>
-        <p className="page-caption">Audio/Video and Text chatting made easy. Just click the 'Start Session' link and start connecting instantly</p>
+        <p className="page-caption">Audio/Video and Text chatting made easy. Just click the 'Start Session' link and start connecting instantly.</p>
       </div>
       
       <div className="home-content">
@@ -550,6 +550,7 @@ function VideoSection({
   const makingOfferRef = React.useRef<Map<string, boolean>>(new Map());
   // Track ICE restart attempts to prevent infinite loops
   const iceRestartAttemptsRef = React.useRef<Map<string, number>>(new Map());
+  const initLocalStreamRef = React.useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     const socket = io(API_URL);
@@ -647,6 +648,17 @@ function VideoSection({
               normalizedLevel = 0;
             }
             
+            // Check if audio track is still active, if not, try to recover
+            const audioTrack = localStreamRef.current?.getAudioTracks()[0];
+            if (audioTrack && audioTrack.readyState === 'ended' && isAudioEnabled) {
+              console.warn('Audio track ended unexpectedly during monitoring, attempting recovery...');
+              // Try to reinitialize the stream
+              if (initLocalStreamRef.current) {
+                initLocalStreamRef.current();
+              }
+              return;
+            }
+            
             setLocalAudioLevel(normalizedLevel);
             
             // Send audio level to other users
@@ -667,6 +679,9 @@ function VideoSection({
         alert('Failed to access camera/microphone. Please check permissions.');
       }
     };
+    
+    // Store initLocalStream in ref so it can be accessed from other functions
+    initLocalStreamRef.current = initLocalStream;
 
     initLocalStream();
 
@@ -677,8 +692,55 @@ function VideoSection({
     socket.on('user-joined', async ({ socketId, userId: joinedUserId }: { socketId: string; userId?: string }) => {
       if (socketId === socket.id) return;
       
-      // Store mapping if userId is provided
+      console.log('User joined:', socketId, 'userId:', joinedUserId);
+      
+      // Check if this is a reconnection (user with same userId but different socketId)
       if (joinedUserId) {
+        const existingSocketId = userIdToSocketIdRef.current.get(joinedUserId);
+        if (existingSocketId && existingSocketId !== socketId) {
+          console.log('User reconnected with new socketId:', socketId, 'old socketId:', existingSocketId);
+          // Clean up old connection
+          const oldPc = peersRef.current.get(existingSocketId);
+          if (oldPc) {
+            oldPc.getSenders().forEach(sender => {
+              if (sender.track) {
+                sender.track.stop();
+              }
+            });
+            oldPc.close();
+            peersRef.current.delete(existingSocketId);
+            setPeers(new Map(peersRef.current));
+          }
+          // Clean up old stream
+          setRemoteStreams(prev => {
+            const newMap = new Map(prev);
+            const oldStream = newMap.get(existingSocketId);
+            if (oldStream) {
+              oldStream.getTracks().forEach(track => {
+                track.stop();
+              });
+            }
+            newMap.delete(existingSocketId);
+            return newMap;
+          });
+          // Clean up old video element
+          if (remoteVideosRef.current) {
+            const oldVideo = remoteVideosRef.current.querySelector(`[data-socket-id="${existingSocketId}"]`) as HTMLVideoElement;
+            if (oldVideo) {
+              if (oldVideo.srcObject instanceof MediaStream) {
+                oldVideo.srcObject.getTracks().forEach(track => {
+                  track.stop();
+                });
+              }
+              oldVideo.srcObject = null;
+              oldVideo.remove();
+            }
+          }
+          // Clean up refs
+          makingOfferRef.current.delete(existingSocketId);
+          iceRestartAttemptsRef.current.delete(existingSocketId);
+        }
+        // Update userId to socketId mapping
         userIdToSocketIdRef.current.set(joinedUserId, socketId);
       }
       
@@ -735,6 +797,7 @@ function VideoSection({
         console.log('Track kind:', event.track.kind);
         console.log('Track enabled:', event.track.enabled);
         console.log('Track ID:', event.track.id);
+        console.log('Track readyState:', event.track.readyState);
         console.log('Streams:', event.streams);
         
         if (event.streams && event.streams.length > 0) {
@@ -747,18 +810,52 @@ function VideoSection({
             readyState: t.readyState
           })));
           
+          // Check if tracks are active
+          const activeTracks = stream.getTracks().filter(track => track.readyState === 'live');
+          if (activeTracks.length === 0) {
+            console.warn('No active tracks in stream for socketId:', socketId);
+            return;
+          }
+          
           // Enable all remote tracks by default so we can see/hear them
           stream.getTracks().forEach(track => {
-            track.enabled = true;
-            console.log('Enabled remote track:', track.kind, track.id);
+            if (track.readyState === 'live') {
+              track.enabled = true;
+              console.log('Enabled remote track:', track.kind, track.id, 'socketId:', socketId);
+              
+              // For audio tracks, ensure they're not muted
+              if (track.kind === 'audio') {
+                console.log('Audio track enabled for socketId:', socketId, 'track ID:', track.id);
+              }
+            } else {
+              console.warn('Track not live, skipping enable:', track.kind, track.id, 'readyState:', track.readyState, 'socketId:', socketId);
+            }
           });
           
-        setRemoteStreams(prev => {
-          const newMap = new Map(prev);
+          // Log audio track status
+          const audioTracks = stream.getAudioTracks();
+          const videoTracks = stream.getVideoTracks();
+          console.log('Stream tracks summary for socketId:', socketId, {
+            audioTracks: audioTracks.length,
+            videoTracks: videoTracks.length,
+            audioEnabled: audioTracks.filter(t => t.enabled).length,
+            videoEnabled: videoTracks.filter(t => t.enabled).length
+          });
+          
+          // Replace existing stream for this socketId (handles reconnection)
+          setRemoteStreams(prev => {
+            const newMap = new Map(prev);
+            // Stop old stream tracks if they exist
+            const oldStream = newMap.get(socketId);
+            if (oldStream && oldStream !== stream) {
+              oldStream.getTracks().forEach(track => {
+                track.stop();
+              });
+            }
             newMap.set(socketId, stream);
             console.log('Updated remote streams map. Keys:', Array.from(newMap.keys()));
-          return newMap;
-        });
+            return newMap;
+          });
         } else {
           console.warn('No streams in ontrack event (user-joined)!');
         }
@@ -1108,17 +1205,56 @@ function VideoSection({
       socket.emit('play-sound', { sessionId, soundType: 'leave' });
       
       const socketIdToRemove = leftSocketId || userId;
+      
+      // Clean up video element from DOM immediately
+      if (remoteVideosRef.current) {
+        const videoElement = remoteVideosRef.current.querySelector(`[data-socket-id="${socketIdToRemove}"]`) as HTMLVideoElement;
+        if (videoElement) {
+          // Stop all tracks before removing
+          if (videoElement.srcObject instanceof MediaStream) {
+            videoElement.srcObject.getTracks().forEach(track => {
+              track.stop();
+            });
+          }
+          videoElement.srcObject = null;
+          videoElement.remove();
+          console.log('Removed video element for socketId:', socketIdToRemove);
+        }
+      }
+      
+      // Clean up remote streams
       setRemoteStreams(prev => {
         const newMap = new Map(prev);
+        const stream = newMap.get(socketIdToRemove);
+        if (stream) {
+          // Stop all tracks in the stream
+          stream.getTracks().forEach(track => {
+            track.stop();
+          });
+        }
         newMap.delete(socketIdToRemove);
         return newMap;
       });
+      
+      // Clean up peer connection
       const pc = peersRef.current.get(socketIdToRemove);
       if (pc) {
+        // Close all tracks in senders
+        pc.getSenders().forEach(sender => {
+          if (sender.track) {
+            sender.track.stop();
+          }
+        });
         pc.close();
         peersRef.current.delete(socketIdToRemove);
         setPeers(new Map(peersRef.current));
+        console.log('Closed and removed peer connection for socketId:', socketIdToRemove);
       }
+      
+      // Clean up refs
+      makingOfferRef.current.delete(socketIdToRemove);
+      iceRestartAttemptsRef.current.delete(socketIdToRemove);
+      userIdToSocketIdRef.current.delete(userId);
     });
 
     // Handle remote audio levels
@@ -1176,21 +1312,81 @@ function VideoSection({
   // Update remote videos
   useEffect(() => {
     if (remoteVideosRef.current) {
-      // Clear existing videos
-      while (remoteVideosRef.current.firstChild) {
-        remoteVideosRef.current.removeChild(remoteVideosRef.current.firstChild);
-      }
+      // First, remove video elements for streams that no longer exist
+      const existingVideos = remoteVideosRef.current.querySelectorAll('[data-socket-id]');
+      existingVideos.forEach((videoEl) => {
+        const socketId = videoEl.getAttribute('data-socket-id');
+        if (socketId && !remoteStreams.has(socketId)) {
+          // Stream no longer exists, remove this video element
+          const video = videoEl as HTMLVideoElement;
+          if (video.srcObject instanceof MediaStream) {
+            video.srcObject.getTracks().forEach(track => {
+              track.stop();
+            });
+          }
+          video.srcObject = null;
+          video.remove();
+          console.log('Removed stale video element for socketId:', socketId);
+        }
+      });
       
-      // Add new video elements for each remote stream
+      // Add or update video elements for each remote stream
       remoteStreams.forEach((stream, socketId) => {
         // Check if video already exists for this socketId
         const existingVideo = remoteVideosRef.current?.querySelector(`[data-socket-id="${socketId}"]`) as HTMLVideoElement;
+        
         if (existingVideo) {
+          // Check if stream tracks are still active
+          const tracks = stream.getTracks();
+          const hasActiveTracks = tracks.some(track => track.readyState === 'live');
+          
+          if (!hasActiveTracks) {
+            console.warn('Stream has no active tracks for socketId:', socketId);
+            // Remove the video element if tracks are ended
+            if (existingVideo.srcObject instanceof MediaStream) {
+              existingVideo.srcObject.getTracks().forEach(track => {
+                track.stop();
+              });
+            }
+            existingVideo.srcObject = null;
+            existingVideo.remove();
+            return;
+          }
+          
           // Update existing video srcObject if stream changed
           if (existingVideo.srcObject !== stream) {
+            // Stop old tracks
+            if (existingVideo.srcObject instanceof MediaStream) {
+              existingVideo.srcObject.getTracks().forEach(track => {
+                track.stop();
+              });
+            }
             existingVideo.srcObject = stream;
+            console.log('Updated video srcObject for socketId:', socketId);
           }
-          return; // Skip if already exists
+          
+          // Ensure tracks are enabled
+          stream.getTracks().forEach(track => {
+            if (track.readyState === 'live') {
+              track.enabled = true;
+            }
+          });
+          
+          // Try to play if not already playing
+          if (existingVideo.paused) {
+            existingVideo.play().catch(err => console.error('Error playing existing video:', err));
+          }
+          
+          return; // Skip creating new element
+        }
+        
+        // Create new video element
+        const tracks = stream.getTracks();
+        const hasActiveTracks = tracks.some(track => track.readyState === 'live');
+        
+        if (!hasActiveTracks) {
+          console.warn('Cannot create video element - stream has no active tracks for socketId:', socketId);
+          return;
         }
         
         const video = document.createElement('video');
@@ -1200,16 +1396,39 @@ function VideoSection({
         video.muted = false; // Unmute remote videos to hear audio
         video.className = 'participant-video remote-participant-video';
         video.setAttribute('data-socket-id', socketId);
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
         
-        // Ensure tracks are enabled
+        // Ensure all tracks are enabled (both audio and video)
         stream.getTracks().forEach(track => {
-          track.enabled = true;
+          if (track.readyState === 'live') {
+            track.enabled = true;
+            console.log('Enabled track for new video element:', track.kind, track.id, 'socketId:', socketId);
+          }
         });
+        
+        // Force play immediately
+        const playVideo = () => {
+          video.play().then(() => {
+            console.log('Remote video started playing for', socketId);
+          }).catch(err => {
+            console.error('Error playing remote video:', err, 'socketId:', socketId);
+            // Retry after a short delay
+            setTimeout(() => {
+              video.play().catch(e => console.error('Retry play failed:', e));
+            }, 500);
+          });
+        };
         
         // Add event listeners for debugging and playback
         video.onloadedmetadata = () => {
           console.log('Remote video metadata loaded for', socketId);
-          video.play().catch(err => console.error('Error playing remote video:', err));
+          playVideo();
+        };
+        
+        video.oncanplay = () => {
+          console.log('Remote video can play for', socketId);
+          playVideo();
         };
         
         video.onplay = () => {
@@ -1220,7 +1439,27 @@ function VideoSection({
           console.error('Remote video error for', socketId, err);
         };
         
+        // Handle track ended events
+        stream.getTracks().forEach(track => {
+          track.onended = () => {
+            console.warn('Track ended for socketId:', socketId, 'kind:', track.kind);
+            // If all tracks are ended, remove the video element
+            const allTracksEnded = stream.getTracks().every(t => t.readyState === 'ended');
+            if (allTracksEnded && video.parentNode) {
+              video.srcObject = null;
+              video.remove();
+              console.log('Removed video element - all tracks ended for socketId:', socketId);
+            }
+          };
+        });
+        
         remoteVideosRef.current?.appendChild(video);
+        console.log('Created new video element for socketId:', socketId, 'tracks:', stream.getTracks().length);
+        
+        // Try to play immediately if metadata is already loaded
+        if (video.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+          playVideo();
+        }
       });
     }
   }, [remoteStreams]);
@@ -1307,10 +1546,19 @@ function VideoSection({
     if (stream) {
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack) {
+        // Check if track is still active, if not, get a fresh reference
+        if (audioTrack.readyState === 'ended') {
+          console.warn('Audio track ended, reinitializing stream...');
+          if (initLocalStreamRef.current) {
+            initLocalStreamRef.current();
+          }
+          return;
+        }
+        
         const newState = !isAudioEnabled;
         audioTrack.enabled = newState;
         setIsAudioEnabled(newState);
-        console.log('Audio track enabled:', newState, 'Track ID:', audioTrack.id);
+        console.log('Audio track enabled:', newState, 'Track ID:', audioTrack.id, 'ReadyState:', audioTrack.readyState);
         
         // Update all peer connections - ensure tracks are in senders
         peersRef.current.forEach((pc, socketId) => {
@@ -1331,6 +1579,16 @@ function VideoSection({
             }
           }
         });
+      } else {
+        console.warn('No audio track found in stream, reinitializing...');
+        if (initLocalStreamRef.current) {
+          initLocalStreamRef.current();
+        }
+      }
+    } else {
+      console.warn('No local stream found, reinitializing...');
+      if (initLocalStreamRef.current) {
+        initLocalStreamRef.current();
       }
     }
   };
@@ -1527,7 +1785,11 @@ function VideoSection({
           )}
         </button>
         <button
-          onClick={onDisconnect}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDisconnect();
+          }}
           className="control-btn-icon leave-btn"
           title="Disconnect"
           type="button"
@@ -1571,6 +1833,7 @@ function ChatSection({
   const emojiPickerRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const userIdRef = React.useRef<string>(`user-${Date.now()}`);
 
   useEffect(() => {
@@ -1579,6 +1842,14 @@ function ChatSection({
 
     const userId = userIdRef.current;
     newSocket.emit('join-session', { sessionId, userId });
+
+    // Handle session joined - receive chat history
+    newSocket.on('session-joined', (data: any) => {
+      console.log('Session joined, received chat history:', data.messages?.length || 0, 'messages');
+      if (data.messages && Array.isArray(data.messages)) {
+        setMessages(data.messages);
+      }
+    });
 
     newSocket.on('chat-message', (data: any) => {
       console.log('Received chat message:', data);
@@ -1727,14 +1998,30 @@ function ChatSection({
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !socket) return;
+    if (!file || !socket) {
+      // Reset file input
+      if (e.target) {
+        e.target.value = '';
+      }
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image size must be less than 10MB');
+      if (e.target) {
+        e.target.value = '';
+      }
+      return;
+    }
 
     const formData = new FormData();
     formData.append('image', file);
 
     try {
       const response = await axios.post(`${API_URL}/api/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 30000 // 30 second timeout
       });
 
       socket.emit('chat-message', {
@@ -1744,9 +2031,25 @@ function ChatSection({
         type: 'image',
         data: { url: response.data.url }
       });
-    } catch (error) {
+      
+      // Reset file input after successful upload
+      if (e.target) {
+        e.target.value = '';
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image');
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to upload image';
+      alert(`Failed to upload image: ${errorMsg}`);
+      // Reset file input on error
+      if (e.target) {
+        e.target.value = '';
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -1804,6 +2107,7 @@ function ChatSection({
       </div>
       <form ref={formRef} onSubmit={sendMessage} className="chat-input-form">
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleImageUpload}
