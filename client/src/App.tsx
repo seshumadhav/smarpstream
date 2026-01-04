@@ -173,7 +173,7 @@ function Home() {
             <div className="session-link-container">
             {sessionLink && (
               <div className="session-link-wrapper">
-                <span className="session-link-label">Your call link:</span>
+                <span className="session-link-label">Your session link:</span>
                 <span className="session-link-text-wrapper">
                   <a href={sessionLink} className="session-link-text">{sessionLink}</a>
                   <button
@@ -291,6 +291,10 @@ function ConfirmModal({
 function SessionRoom({ sessionId, session }: { sessionId: string; session: any }) {
   const navigate = useNavigate();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [videoMinimized, setVideoMinimized] = useState(false);
+  const [videoMaximized, setVideoMaximized] = useState(false);
+  const [chatMinimized, setChatMinimized] = useState(false);
+  const [chatMaximized, setChatMaximized] = useState(false);
 
   const handleHomeClick = () => {
     setShowConfirmModal(true);
@@ -305,6 +309,33 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
     setShowConfirmModal(false);
   };
 
+  const handleViewChange = (view: 'video' | 'chat' | 'split') => {
+    if (view === 'video') {
+      setVideoMaximized(true);
+      setVideoMinimized(false);
+      setChatMinimized(true);
+      setChatMaximized(false);
+    } else if (view === 'chat') {
+      setChatMaximized(true);
+      setChatMinimized(false);
+      setVideoMinimized(true);
+      setVideoMaximized(false);
+    } else { // split
+      setVideoMinimized(false);
+      setVideoMaximized(false);
+      setChatMinimized(false);
+      setChatMaximized(false);
+    }
+  };
+
+  // Keep old handlers for backward compatibility with panel controls
+  const handleVideoMinimize = () => handleViewChange('chat');
+  const handleVideoMaximize = () => handleViewChange('video');
+  const handleVideoRestore = () => handleViewChange('split');
+  const handleChatMinimize = () => handleViewChange('video');
+  const handleChatMaximize = () => handleViewChange('chat');
+  const handleChatRestore = () => handleViewChange('split');
+
   return (
     <div className="session-room">
       <ConfirmModal
@@ -312,28 +343,85 @@ function SessionRoom({ sessionId, session }: { sessionId: string; session: any }
         onClose={handleCancel}
         onConfirm={handleConfirm}
         title="Leave Call?"
-        message="Are you sure you want to disconnect from the call and return to home?"
+        message="Sure you want to disconnect the call and return to home?"
       />
       <div className="page-header">
         <div className="header-content-wrapper">
-          <h1 className="page-heading">Smarp Stream</h1>
-          <button 
-            onClick={handleHomeClick}
-            className="back-button"
-            title="Go back to home"
-            type="button"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5"></path>
-              <path d="M12 19l-7-7 7-7"></path>
-            </svg>
-          </button>
-        </div>
-        <p className="page-caption">Audio/Video and Text chatting made easy. Just click the 'Start Session' link and start connecting instantly</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px' }}>
+            <h1 className="page-heading">Smarp Stream</h1>
+            <button 
+              onClick={handleHomeClick}
+              className="back-button"
+              title="Go back to home"
+              type="button"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+              </svg>
+            </button>
       </div>
-      <div className="session-content">
-        <VideoSection sessionId={sessionId} session={session} />
-        <ChatSection sessionId={sessionId} />
+          <div className="view-control-panel-above-chat-header">
+            <button
+              onClick={() => handleViewChange('video')}
+              className={`view-control-btn ${videoMaximized && !chatMaximized ? 'active' : ''}`}
+              title="Video View"
+              type="button"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 7l-7 5 7 5V7z"></path>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+            </button>
+            <button
+              onClick={() => handleViewChange('split')}
+              className={`view-control-btn ${!videoMaximized && !chatMaximized && !videoMinimized && !chatMinimized ? 'active' : ''}`}
+              title="Split View"
+              type="button"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="9" height="18" rx="1"></rect>
+                <rect x="12" y="3" width="9" height="18" rx="1"></rect>
+              </svg>
+            </button>
+            <button
+              onClick={() => handleViewChange('chat')}
+              className={`view-control-btn ${chatMaximized && !videoMaximized ? 'active' : ''}`}
+              title="Chat View"
+              type="button"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className={`session-content ${videoMaximized ? 'video-maximized' : ''} ${chatMaximized ? 'chat-maximized' : ''} ${videoMinimized ? 'video-minimized' : ''} ${chatMinimized ? 'chat-minimized' : ''}`}>
+        <VideoSection 
+          sessionId={sessionId} 
+          session={session}
+          minimized={videoMinimized}
+          maximized={videoMaximized}
+          onMinimize={handleVideoMinimize}
+          onMaximize={handleVideoMaximize}
+          onRestore={handleVideoRestore}
+          otherPanelMinimized={chatMinimized}
+          onRestoreOtherPanel={handleChatRestore}
+          onDisconnect={handleHomeClick}
+        />
+        <div className="chat-section-wrapper">
+          <ChatSection 
+            sessionId={sessionId}
+            minimized={chatMinimized}
+            maximized={chatMaximized}
+            onMinimize={handleChatMinimize}
+            onMaximize={handleChatMaximize}
+            onRestore={handleChatRestore}
+            otherPanelMinimized={videoMinimized}
+            onRestoreOtherPanel={handleVideoRestore}
+          />
+        </div>
       </div>
     </div>
   );
@@ -364,7 +452,7 @@ function SessionHeader({ session }: { session: any }) {
         onClose={handleCancel}
         onConfirm={handleConfirm}
         title="Leave Call?"
-        message="Are you sure you want to disconnect from the call and return to home?"
+        message="Sure you want to disconnect the call and return to home?"
       />
     <div className="session-header">
       <div className="header-content">
@@ -374,7 +462,7 @@ function SessionHeader({ session }: { session: any }) {
           <span className="session-name">{session.title}</span>
         </h2>
       </div>
-      </div>
+    </div>
     </>
   );
 }
@@ -416,7 +504,29 @@ const playLeaveSound = () => {
 
 
 // Video Section
-function VideoSection({ sessionId, session }: { sessionId: string; session: any }) {
+function VideoSection({ 
+  sessionId, 
+  session,
+  minimized,
+  maximized,
+  onMinimize,
+  onMaximize,
+  onRestore,
+  otherPanelMinimized,
+  onRestoreOtherPanel,
+  onDisconnect
+}: { 
+  sessionId: string; 
+  session: any;
+  minimized: boolean;
+  maximized: boolean;
+  onMinimize: () => void;
+  onMaximize: () => void;
+  onRestore: () => void;
+  otherPanelMinimized: boolean;
+  onRestoreOtherPanel: () => void;
+  onDisconnect: () => void;
+}) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
@@ -489,9 +599,17 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         try {
           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
           audioContextRef.current = audioContext;
+          
+          // Resume audio context if suspended (required by some browsers)
+          if (audioContext.state === 'suspended') {
+            audioContext.resume().catch(err => {
+              console.error('Error resuming audio context:', err);
+            });
+          }
+          
           const analyser = audioContext.createAnalyser();
           analyser.fftSize = 256;
-          analyser.smoothingTimeConstant = 0.8;
+          analyser.smoothingTimeConstant = 0.3; // Lower smoothing for more responsive updates
           analyserRef.current = analyser;
           
           const source = audioContext.createMediaStreamSource(stream);
@@ -501,19 +619,39 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           const monitorAudioLevel = () => {
             if (!analyserRef.current) return;
             
+            // Use time domain data for more accurate amplitude representation
             const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-            analyserRef.current.getByteFrequencyData(dataArray);
+            analyserRef.current.getByteTimeDomainData(dataArray);
             
-            // Calculate average volume
-            const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-            // Scale more aggressively to make changes more visible
-            const level = Math.min(100, (average / 255) * 100 * 1.5); // Multiply by 1.5 for better sensitivity
+            // Calculate RMS (Root Mean Square) for accurate volume measurement
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              const normalized = (dataArray[i] - 128) / 128; // Normalize to -1 to 1
+              sum += normalized * normalized;
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
             
-            setLocalAudioLevel(level);
+            // Convert to logarithmic scale (decibels) for better human perception
+            // Then normalize to 0-100 range with better sensitivity
+            const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+            // Map from typical range (-60dB to 0dB) to 0-100
+            // Only show fill if audio is above threshold (around -50dB or higher)
+            let normalizedLevel = 0;
+            if (db > -50) {
+              // Map from -50dB to 0dB range to 0-100
+              normalizedLevel = Math.max(0, Math.min(100, ((db + 50) / 50) * 100));
+              // Amplify for better visibility - multiply by 2.5 to make changes more noticeable
+              normalizedLevel = Math.min(100, normalizedLevel * 2.5);
+            } else {
+              // Below threshold - no fill
+              normalizedLevel = 0;
+            }
+            
+            setLocalAudioLevel(normalizedLevel);
             
             // Send audio level to other users
             if (socketRef.current) {
-              socketRef.current.emit('audio-level', { sessionId, level, userId });
+              socketRef.current.emit('audio-level', { sessionId, level: normalizedLevel, userId });
             }
             
             animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
@@ -1097,9 +1235,17 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
         setIsVideoEnabled(newState);
         console.log('Video track enabled:', newState, 'Track ID:', videoTrack.id);
         
-        // Show/hide video element based on state
+        // Show/hide video element based on state and ensure it plays
         if (videoRef.current) {
-          videoRef.current.style.display = newState ? 'block' : 'none';
+          if (newState) {
+            videoRef.current.style.display = 'block';
+            // Ensure video plays when enabled
+            videoRef.current.play().catch(err => {
+              console.error('Error playing video:', err);
+            });
+          } else {
+            videoRef.current.style.display = 'none';
+          }
         }
         
         // Update all peer connections - ensure tracks are in senders
@@ -1125,15 +1271,35 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     }
   };
 
-  // Helper function to get audio button color based on intensity
-  const getAudioButtonColor = (level: number): string => {
-    if (!isAudioEnabled) return '#60a5fa'; // Light blue when muted
-    if (level < 5) return '#60a5fa'; // Light blue - very quiet
-    if (level < 15) return '#3b82f6'; // Blue - quiet
-    if (level < 30) return '#2563eb'; // Medium blue - moderate
-    if (level < 50) return '#1d4ed8'; // Dark blue - loud
-    if (level < 70) return '#1e40af'; // Very dark blue - very loud
-    return '#1e3a8a'; // Darkest blue (highest intensity)
+  // Helper function to get audio fill percentage (0-100)
+  const getAudioFillPercentage = (level: number): number => {
+    if (!isAudioEnabled) return 0;
+    // Level is already normalized 0-100, use it directly
+    // Add a minimum threshold - only show fill if level is above 5
+    if (level < 5) return 0;
+    return Math.min(100, Math.max(0, level));
+  };
+  
+  // Helper function to get blue color intensity based on audio level
+  const getBlueFillColor = (level: number): string => {
+    if (!isAudioEnabled) return '#3b82f6'; // Default blue when muted
+    
+    const fillPercent = getAudioFillPercentage(level);
+    
+    // Create vivid blue gradient: light blue -> medium blue -> bright blue -> cyan
+    if (fillPercent < 25) {
+      // Quiet: Light blue
+      return '#60a5fa'; // blue-400
+    } else if (fillPercent < 50) {
+      // Low: Medium blue
+      return '#3b82f6'; // blue-500
+    } else if (fillPercent < 75) {
+      // Moderate: Bright blue
+      return '#2563eb'; // blue-600
+    } else {
+      // Loud: Vivid cyan-blue
+      return '#0ea5e9'; // sky-500 (more vivid)
+    }
   };
 
   const toggleAudio = () => {
@@ -1176,68 +1342,75 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
     }
     const url = window.location.href;
     
-    // Try modern clipboard API first (works best on desktop)
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
-      } catch (clipboardErr) {
-        console.log('Clipboard API failed, trying fallback:', clipboardErr);
-      }
-    }
-    
-    // Fallback for older browsers or when clipboard API fails
-    const textArea = document.createElement('textarea');
-    textArea.value = url;
-    textArea.style.position = 'fixed';
-    textArea.style.top = '0';
-    textArea.style.left = '0';
-    textArea.style.width = '2em';
-    textArea.style.height = '2em';
-    textArea.style.padding = '0';
-    textArea.style.border = 'none';
-    textArea.style.outline = 'none';
-    textArea.style.boxShadow = 'none';
-    textArea.style.background = 'transparent';
-    textArea.style.opacity = '0';
-    textArea.style.pointerEvents = 'none';
-    textArea.setAttribute('readonly', '');
-    document.body.appendChild(textArea);
-    
-    // For iOS
-    if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
-      const range = document.createRange();
-      range.selectNodeContents(textArea);
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-      textArea.setSelectionRange(0, 999999);
-    } else {
-      textArea.select();
-      textArea.setSelectionRange(0, 999999);
-    }
-    
     try {
+      // Try modern clipboard API first (works best on desktop)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+          console.log('Link copied to clipboard:', url);
+          return;
+        } catch (clipboardErr) {
+          console.log('Clipboard API failed, trying fallback:', clipboardErr);
+        }
+      }
+      
+      // Fallback for older browsers or when clipboard API fails
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+      textArea.style.padding = '0';
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+      textArea.style.background = 'transparent';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+      textArea.setAttribute('readonly', '');
+      document.body.appendChild(textArea);
+      
+      // For iOS
+      if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+        const range = document.createRange();
+        range.selectNodeContents(textArea);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        textArea.setSelectionRange(0, 999999);
+      } else {
+        textArea.select();
+        textArea.setSelectionRange(0, 999999);
+      }
+      
       const successful = document.execCommand('copy');
       if (successful) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+        console.log('Link copied to clipboard (fallback):', url);
       } else {
         console.error('execCommand copy failed');
+        alert('Failed to copy link. Please copy manually: ' + url);
       }
+      
+      document.body.removeChild(textArea);
     } catch (err) {
       console.error('Failed to copy:', err);
-    } finally {
-      document.body.removeChild(textArea);
+      alert('Failed to copy link. Please copy manually: ' + url);
     }
   };
 
   return (
-    <div className="video-section">
+    <div className={`video-section ${minimized ? 'minimized' : ''} ${maximized ? 'maximized' : ''}`}>
+      {!minimized && (
+        <>
+      <div className="video-header">Video</div>
       <div className="video-container-split">
         {/* Local video - top half */}
         <div className="video-participant local-participant">
@@ -1251,8 +1424,8 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               style={{ display: isVideoEnabled ? 'block' : 'none' }}
             />
             <div className="participant-label">You</div>
+          </div>
         </div>
-      </div>
         
         {/* Remote video - right half */}
         <div className="video-participant remote-participant">
@@ -1261,7 +1434,7 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
             {remoteStreams.size === 0 && (
               <div className="no-participant-message">Waiting for participant...</div>
             )}
-          </div>
+      </div>
         </div>
       </div>
       
@@ -1305,19 +1478,43 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
               height="20" 
               viewBox="0 0 24 24" 
               fill="none" 
-              stroke={getAudioButtonColor(localAudioLevel)} 
-              strokeWidth="2" 
+              stroke="#60a5fa" 
+              strokeWidth="2.5" 
               strokeLinecap="round" 
               strokeLinejoin="round"
               style={{
-                filter: localAudioLevel > 0 ? `drop-shadow(0 0 ${4 + (localAudioLevel / 100) * 4}px ${getAudioButtonColor(localAudioLevel)}80)` : 'none',
-                transition: 'stroke 0.2s ease, filter 0.2s ease'
+                transition: 'all 0.15s ease',
               }}
             >
+              <defs>
+                <clipPath id={`mic-fill-clip-${sessionId}`}>
+                  {getAudioFillPercentage(localAudioLevel) > 0 && (
+                    <rect 
+                      x="0" 
+                      y={24 - (getAudioFillPercentage(localAudioLevel) / 100) * 24} 
+                      width="24" 
+                      height={Math.max(0.1, (getAudioFillPercentage(localAudioLevel) / 100) * 24)} 
+                    />
+                  )}
+                </clipPath>
+              </defs>
+              {/* Base mic outline */}
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
               <line x1="12" y1="19" x2="12" y2="23"></line>
               <line x1="8" y1="23" x2="16" y2="23"></line>
+              {/* Blue fill that fills from bottom to top based on audio intensity */}
+              <g clipPath={`url(#mic-fill-clip-${sessionId})`}>
+                <path 
+                  d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z M19 10v2a7 7 0 0 1-14 0v-2 M12 19v4 M8 23h8" 
+                  fill={getBlueFillColor(localAudioLevel)}
+                  stroke="none"
+                  style={{
+                    transition: 'fill 0.15s ease',
+                    filter: localAudioLevel > 20 ? `drop-shadow(0 0 ${4 + (localAudioLevel / 100) * 8}px ${getBlueFillColor(localAudioLevel)}dd)` : 'none',
+                  }}
+                />
+              </g>
             </svg>
           ) : (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1330,21 +1527,42 @@ function VideoSection({ sessionId, session }: { sessionId: string; session: any 
           )}
         </button>
         <button
-          onClick={() => window.location.href = '/'}
+          onClick={onDisconnect}
           className="control-btn-icon leave-btn"
           title="Disconnect"
+          type="button"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
           </svg>
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }
 
 // Chat Section
-function ChatSection({ sessionId }: { sessionId: string }) {
+function ChatSection({ 
+  sessionId,
+  minimized,
+  maximized,
+  onMinimize,
+  onMaximize,
+  onRestore,
+  otherPanelMinimized,
+  onRestoreOtherPanel
+}: { 
+  sessionId: string;
+  minimized: boolean;
+  maximized: boolean;
+  onMinimize: () => void;
+  onMaximize: () => void;
+  onRestore: () => void;
+  otherPanelMinimized: boolean;
+  onRestoreOtherPanel: () => void;
+}) {
   const [messages, setMessages] = useState<any[]>([]);
   const [message, setMessage] = useState('');
   const [socket, setSocket] = useState<any>(null);
@@ -1363,6 +1581,7 @@ function ChatSection({ sessionId }: { sessionId: string }) {
     newSocket.emit('join-session', { sessionId, userId });
 
     newSocket.on('chat-message', (data: any) => {
+      console.log('Received chat message:', data);
       setMessages(prev => [...prev, data]);
     });
 
@@ -1411,11 +1630,44 @@ function ChatSection({ sessionId }: { sessionId: string }) {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !socket) return;
+    if (!message.trim()) {
+      console.log('Message is empty, not sending');
+      return;
+    }
+    
+    if (!socket) {
+      console.error('Socket not connected, cannot send message');
+      alert('Connection lost. Please refresh the page.');
+      return;
+    }
+
+    const messageToSend = message.trim();
+    console.log('Sending message:', messageToSend, 'Socket connected:', socket.connected);
+
+    // Check if message contains a base64 data URI image
+    const dataUriRegex = /data:image\/[^;]+;base64,[^\s]+/i;
+    const dataUriMatch = messageToSend.match(dataUriRegex);
+    
+    if (dataUriMatch) {
+      const dataUri = dataUriMatch[0];
+      // Send as image preview
+      socket.emit('chat-message', {
+        sessionId,
+        message: messageToSend,
+        userId: userIdRef.current,
+        type: 'image-url',
+        data: { url: dataUri }
+      });
+      setMessage('');
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+      return;
+    }
 
     // Check if message contains a URL
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urls = message.match(urlRegex);
+    const urls = messageToSend.match(urlRegex);
 
     if (urls && urls.length > 0) {
       const url = urls[0];
@@ -1428,7 +1680,7 @@ function ChatSection({ sessionId }: { sessionId: string }) {
         // Send as image preview
         socket.emit('chat-message', {
           sessionId,
-          message,
+          message: messageToSend,
           userId: userIdRef.current,
           type: 'image-url',
           data: { url: url }
@@ -1441,16 +1693,17 @@ function ChatSection({ sessionId }: { sessionId: string }) {
           });
           socket.emit('chat-message', {
             sessionId,
-            message,
+            message: messageToSend,
             userId: userIdRef.current,
             type: 'link',
             data: previewResponse.data
           });
         } catch (error) {
+          console.error('Link preview failed, sending as text:', error);
           // Send as regular text if preview fails
           socket.emit('chat-message', {
             sessionId,
-            message,
+            message: messageToSend,
             userId: userIdRef.current,
             type: 'text'
           });
@@ -1459,7 +1712,7 @@ function ChatSection({ sessionId }: { sessionId: string }) {
     } else {
       socket.emit('chat-message', {
         sessionId,
-        message,
+        message: messageToSend,
         userId: userIdRef.current,
         type: 'text'
       });
@@ -1498,8 +1751,14 @@ function ChatSection({ sessionId }: { sessionId: string }) {
   };
 
   return (
-    <div className="chat-section">
-      <div className="chat-header">Chat</div>
+    <div className={`chat-section ${minimized ? 'minimized' : ''} ${maximized ? 'maximized' : ''}`}>
+      {!minimized && (
+        <div className="chat-header">
+          <span>Chat</span>
+        </div>
+      )}
+      {!minimized && (
+        <>
       <div className="chat-messages">
         {messages.map((msg, idx) => (
           <div key={idx} className={`chat-message ${msg.userId === userIdRef.current ? 'own' : ''}`}>
@@ -1586,6 +1845,8 @@ function ChatSection({ sessionId }: { sessionId: string }) {
         />
         <button type="submit" className="send-btn">Send</button>
       </form>
+      </>
+      )}
     </div>
   );
 }
